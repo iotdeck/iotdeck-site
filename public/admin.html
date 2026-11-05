@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en" dir="ltr" data-page="admin">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IoTDeck — Admin</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="admin-body">
+  <header class="admin-top">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span>IoTDeck admin</div>
+    <a class="btn btn-ghost" href="/dashboard">Back to dashboard</a>
+  </header>
+
+  <main class="admin-main">
+    <p id="admin-message" class="error" role="alert"></p>
+
+    <section class="admin-stats" aria-label="Totals">
+      <div class="card stat"><div class="label">Users</div><div class="value" id="a-users">0</div></div>
+      <div class="card stat"><div class="label">Devices</div><div class="value" id="a-devices">0</div></div>
+      <div class="card stat"><div class="label">Sends today</div><div class="value" id="a-today">0</div></div>
+      <div class="card stat"><div class="label">Sends this month</div><div class="value" id="a-month">0</div></div>
+    </section>
+
+    <section class="card admin-card">
+      <div class="admin-head">
+        <h2>Users</h2>
+        <span class="lead" id="a-default"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Devices</th>
+              <th>Today</th>
+              <th>This month</th>
+              <th>Total</th>
+              <th>Daily limit</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="a-rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card admin-card hidden" id="a-detail">
+      <div class="admin-head">
+        <h2 id="d-title">User</h2>
+        <button class="btn btn-ghost" id="d-close" type="button">Close</button>
+      </div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Day (UTC)</th><th>Sends</th></tr></thead>
+          <tbody id="d-rows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="/admin.js" defer></script>
+</body>
+</html>

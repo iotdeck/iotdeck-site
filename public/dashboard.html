@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="ar" dir="rtl" data-page="dashboard">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IoTDeck — لوحة التحكم</title>
+  <link rel="icon" href="/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" aria-label="Devices">
+      <div class="sidebar-head">
+        <div class="brand"><span class="brand-mark" aria-hidden="true"></span>IoTDeck</div>
+      </div>
+
+      <div class="sidebar-head">
+        <span class="kicker" data-i18n="devices">الأجهزة</span>
+        <button class="btn btn-ghost" id="add-device" data-i18n-title="add_device" data-i18n-aria="add_device" title="إضافة جهاز" aria-label="إضافة جهاز" style="height:32px;padding:0 10px;" data-i18n="new_device">+ جديد</button>
+      </div>
+
+      <nav class="device-list" id="device-list" aria-label="Your devices"></nav>
+
+      <div class="sidebar-foot">
+        <div class="user-chip">
+          <span class="avatar" id="avatar" aria-hidden="true">·</span>
+          <span class="who" id="user-email"></span>
+        </div>
+        <button class="btn btn-ghost btn-block" id="lang-toggle" type="button">English</button>
+        <button class="btn btn-ghost btn-block" id="logout" data-i18n="sign_out">تسجيل الخروج</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h1 id="greeting" data-i18n="dashboard">لوحة التحكم</h1>
+          <p class="sub" id="subtitle" data-i18n="loading">جارٍ تحميل أجهزتك…</p>
+        </div>
+        <div class="actions">
+          <button class="btn" id="add-device-2" data-i18n="add_device_btn">إضافة جهاز</button>
+          <button class="btn btn-primary" id="add-widget" data-i18n="add_widget_btn">إضافة عنصر</button>
+        </div>
+      </header>
+
+      <section class="stats" aria-label="Summary">
+        <div class="card stat"><div class="label" data-i18n="stat_devices">الأجهزة</div><div class="value" id="stat-devices">0</div></div>
+        <div class="card stat"><div class="label" data-i18n="stat_online">متصلة الآن</div><div class="value" id="stat-online">0</div></div>
+        <div class="card stat"><div class="label" data-i18n="stat_widgets">العناصر</div><div class="value" id="stat-widgets">0</div></div>
+        <div class="card stat usage-card" data-i18n-title="usage_hint">
+          <div class="label" data-i18n="stat_usage">إرسال اليوم</div>
+          <div class="value" id="stat-usage">0 / 500</div>
+          <div class="usage-bar" role="meter" aria-labelledby="stat-usage" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="usage-fill"></span></div>
+        </div>
+      </section>
+
+      <div class="notice hidden" id="unknown-notice" role="status"></div>
+
+      <div class="actions" id="filter-row" style="margin-bottom:16px;"></div>
+
+      <section class="grid" id="grid" aria-live="polite"></section>
+
+      <section class="card activity-card" aria-labelledby="activity-title">
+        <div class="admin-head">
+          <h2 id="activity-title" data-i18n="activity_title">النشاط</h2>
+          <span class="lead" id="activity-note"></span>
+          <a class="btn btn-ghost" id="activity-csv" href="/api/activity.csv" download data-i18n="download_csv">تنزيل CSV</a>
+        </div>
+        <ul class="activity-list" id="activity-list"></ul>
+      </section>
+    </main>
+  </div>
+
+  <!-- Add device modal -->
+  <div class="modal-backdrop" id="device-modal" role="dialog" aria-modal="true" aria-labelledby="device-title">
+    <div class="card modal">
+      <div id="device-step-1">
+        <h2 id="device-title" data-i18n="add_device_title">إضافة جهاز</h2>
+        <p class="lead" data-i18n="add_device_lead">أعطِ الجهاز اسمًا. ستحصل على مفتاح يُستخدم مرة واحدة لإدخاله في الجهاز.</p>
+        <form id="device-form" class="form" novalidate>
+          <div class="field">
+            <label for="device-name" data-i18n="device_name">اسم الجهاز</label>
+            <input class="input" id="device-name" maxlength="60" data-i18n-placeholder="device_name_ph" placeholder="حساس الدفيئة" required>
+          </div>
+          <p class="error" id="device-error" role="alert"></p>
+          <div class="modal-actions" style="margin-top:4px;">
+            <button type="button" class="btn btn-ghost" data-close data-i18n="cancel">إلغاء</button>
+            <button type="submit" class="btn btn-primary" data-i18n="create_device">إنشاء الجهاز</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="device-step-2" class="hidden">
+        <div class="field" id="setup-name-row" hidden>
+          <label for="setup-name" data-i18n="device_name">اسم الجهاز</label>
+          <div class="row-2" style="gap:8px;">
+            <input class="input" id="setup-name" maxlength="60">
+            <button type="button" class="btn" id="save-name" data-i18n="save_name">حفظ الاسم</button>
+          </div>
+          <p class="hint"><span data-i18n="setup_id_label">معرّف الجهاز (ليس المفتاح):</span> <span id="setup-id"></span></p>
+        </div>
+        <h2 data-i18n="key_title">مفتاح الجهاز</h2>
+        <p class="lead" data-i18n="key_lead">انسخه الآن. لأمانك لن يُعرض مرة أخرى.</p>
+        <div class="key-box" id="device-key"></div>
+        <div class="actions" style="margin:12px 0 18px;">
+          <button class="btn" id="copy-key" data-i18n="copy_key">نسخ المفتاح</button>
+          <button class="btn btn-ghost" id="rotate-key" data-i18n="rotate_key">مفتاح جديد</button>
+        </div>
+        <div class="warning-note">
+          <span aria-hidden="true">●</span>
+          <span data-i18n="key_warn">احتفظ بالمفتاح سرًا. أي شخص يملكه يستطيع إرسال بيانات إلى لوحة هذا الجهاز.</span>
+        </div>
+        <p class="kicker" style="margin:22px 0 10px;" data-i18n="test_choose">اختر تجربة للبدء فورًا</p>
+        <div class="actions" style="margin-bottom:12px;">
+          <button class="btn btn-primary" id="test-send" data-i18n="test_send">تجربة الإرسال</button>
+          <button class="btn" id="test-write" data-i18n="test_write">تجربة التحكم</button>
+        </div>
+        <p class="lead" id="test-hint" data-i18n="test_send_hint">يرسل الجهاز قيمة حرارة إلى لوحتك، وتظهر لك عنصر الحرارة فورًا.</p>
+        <p class="kicker" style="margin:22px 0 10px;" data-i18n="quick_start">بدء سريع (ESP32، Arduino IDE)</p>
+        <div class="actions" style="margin:8px 0 10px;">
+          <button class="btn btn-primary" id="copy-code" data-i18n="copy_code">نسخ الكود</button>
+        </div>
+        <pre class="code" id="device-snippet"></pre>
+        <div class="modal-actions">
+          <button class="btn btn-primary" data-close data-i18n="done">تم</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add widget modal -->
+  <div class="modal-backdrop" id="widget-modal" role="dialog" aria-modal="true" aria-labelledby="widget-title">
+    <div class="card modal">
+      <h2 id="widget-title" data-i18n="add_widget_title">إضافة عنصر</h2>
+      <p class="lead" id="widget-lead" data-i18n="add_widget_lead">اختر الجهاز والقيمة التي تريد عرضها أو التحكم بها.</p>
+      <form id="widget-form" class="form" novalidate>
+        <div class="field">
+          <label for="widget-device" data-i18n="device_label">الجهاز</label>
+          <select class="input" id="widget-device" required></select>
+        </div>
+        <div class="field">
+          <span class="field-label" id="gadget-label" data-i18n="widget_label">نوع العنصر</span>
+          <div class="gadget-grid" id="gadget-grid" role="radiogroup" aria-labelledby="gadget-label"></div>
+          <input type="hidden" id="widget-type" value="value">
+        </div>
+        <div class="field">
+          <label for="widget-field" data-i18n="field_label">حقل البيانات</label>
+          <input class="input" id="widget-field" list="field-options" placeholder="TEMPERATURE" maxlength="32" required>
+          <datalist id="field-options"></datalist>
+          <p class="hint" data-i18n="field_hint">يجب أن يطابق هذا الاسم تمامًا الاسم في كود ESP32، مثل TEMPERATURE. يفرّق بين الأحرف الكبيرة والصغيرة.</p>
+        </div>
+        <div class="field">
+          <label for="widget-title-input" data-i18n="title_label">العنوان</label>
+          <input class="input" id="widget-title-input" maxlength="40" data-i18n-placeholder="title_ph" placeholder="حرارة الدفيئة">
+          <p class="hint" data-i18n="title_hint">تجميلي فقط، يظهر على لوحة التحكم ولا يؤثر في البيانات أو الجهاز.</p>
+        </div>
+        <div class="row-2" id="unit-row">
+          <div class="field">
+            <label for="widget-unit" data-i18n="unit_label">الوحدة (اختياري)</label>
+            <input class="input" id="widget-unit" maxlength="8" placeholder="°C">
+          </div>
+          <div class="field" id="gauge-range" hidden>
+            <label data-i18n="range_label">النطاق</label>
+            <div class="row-2" style="gap:8px;">
+              <input class="input" id="widget-min" type="number" value="0" data-i18n-aria="min_aria" aria-label="الحد الأدنى">
+              <input class="input" id="widget-max" type="number" value="100" data-i18n-aria="max_aria" aria-label="الحد الأعلى">
+            </div>
+          </div>
+        </div>
+        <p class="error" id="widget-error" role="alert"></p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" data-close data-i18n="cancel">إلغاء</button>
+          <button type="submit" class="btn btn-primary" id="widget-submit" data-i18n="add_widget_submit">إضافة العنصر</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Device look modal -->
+  <div class="modal-backdrop" id="theme-modal" role="dialog" aria-modal="true" aria-labelledby="theme-title">
+    <div class="card modal">
+      <h2 id="theme-title" data-i18n="theme_title">تخصيص الجهاز</h2>
+      <p class="lead" data-i18n="theme_lead">غيّر اللون والخلفية لهذه اللوحة. تظهر التغييرات فورًا.</p>
+      <div class="field">
+        <span class="field-label" data-i18n="theme_accent">اللون الأساسي</span>
+        <div class="swatches" id="theme-accents" role="radiogroup"></div>
+      </div>
+      <div class="field">
+        <span class="field-label" data-i18n="theme_bg">الخلفية</span>
+        <div class="gadget-grid" id="theme-bgs" role="radiogroup"></div>
+      </div>
+      <div class="field">
+        <span class="field-label" data-i18n="theme_image">صورة الخلفية</span>
+        <p class="lead" data-i18n="theme_image_hint">JPG أو PNG أو WebP، بحد أقصى 2 MB. تُحفظ الصورة فورًا.</p>
+        <div class="actions">
+          <label class="btn" for="theme-image" data-i18n="theme_image_pick">اختيار صورة</label>
+          <input type="file" id="theme-image" accept="image/jpeg,image/png,image/webp" hidden>
+          <button type="button" class="btn btn-ghost" id="theme-image-remove" data-i18n="theme_image_remove">إزالة الصورة</button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="theme-cancel" data-i18n="cancel">إلغاء</button>
+        <button type="button" class="btn btn-primary" id="theme-save" data-i18n="theme_save">حفظ</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="sparkFill" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0%" stop-color="#7c8cff" stop-opacity="0.35"/>
+        <stop offset="100%" stop-color="#7c8cff" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="gaugeGrad" x1="0" x2="1" y1="0" y2="1">
+        <stop offset="0%" stop-color="#7c8cff"/>
+        <stop offset="100%" stop-color="#3ee3b5"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <script src="/i18n.js" defer></script>
+  <script src="/dashboard.js" defer></script>
+</body>
+</html>

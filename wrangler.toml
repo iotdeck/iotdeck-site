@@ -1,0 +1,31 @@
+name = "iotdeck-site"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+
+# Website files from public/
+[assets]
+directory = "./public"
+binding = "ASSETS"
+html_handling = "drop-trailing-slash"
+run_worker_first = true  # the Worker handles the www redirect before static files
+
+# Database
+[[d1_databases]]
+binding = "DB"
+database_name = "iotdeck"
+database_id = "ec97a199-c1bd-4d8f-842b-051635017f60"
+
+# Image storage for device backgrounds
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "iotdeck-media"
+
+# Device hub (class lives in the iotdeck-hub-live Worker)
+[[durable_objects.bindings]]
+name = "HUB"
+class_name = "DeviceHub"
+script_name = "iotdeck-hub-live"
+
+[vars]
+PUBLIC_URL = "https://iotdeck.org"
+GOOGLE_CLIENT_ID = "931506749409-dhkhgrpkb6uml49ud7669u0927ab40l3.apps.googleusercontent.com"

@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ar" dir="rtl" data-page="home">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IoTDeck — لوحات IoT مجانية للطلاب</title>
+  <meta name="description" content="IoTDeck is a free, open source web dashboard for ESP32 projects. See sensor readings live and control your board from any browser.">
+  <link rel="icon" href="/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="lp-body">
+  <div class="lp-bg" aria-hidden="true"><span class="lp-blob lp-blob-a"></span><span class="lp-blob lp-blob-b"></span></div>
+
+  <header class="lp-nav">
+    <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span>IoTDeck</a>
+    <nav class="lp-links" aria-label="Main">
+      <a href="#features" data-i18n="nav_features">المميزات</a>
+      <a href="#how" data-i18n="nav_how">كيف يعمل</a>
+      <a href="#open" data-i18n="nav_open">مفتوح المصدر</a>
+    </nav>
+    <div class="lp-nav-actions">
+      <button class="btn btn-ghost" id="lang-toggle" type="button">English</button>
+      <a class="btn btn-ghost lp-hide-sm" href="/signin" data-i18n="nav_signin">تسجيل الدخول</a>
+      <a class="btn btn-primary" href="/signin" data-i18n="nav_start">ابدأ مجانًا</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="lp-hero">
+      <div class="lp-hero-text">
+        <span class="lp-badge" data-i18n="hero_badge">مجاني · مفتوح المصدر · للطلاب</span>
+        <h1 class="lp-title" data-i18n="hero_title">جهاز ESP32 الخاص بك، حيًّا على لوحة تحكم</h1>
+        <p class="lp-lead" data-i18n="hero_lead">تمنح IoTDeck طلاب الأعمال اليدوية والمهتمين بالإلكترونيات لوحة ويب جاهزة. أرسل قراءات المستشعرات من لوحتك، وشاهدها مباشرة، وتحكّم بها بمفتاح من أي متصفح.</p>
+        <div class="lp-cta">
+          <a class="btn btn-primary lp-btn-lg" href="/signin" data-i18n="hero_cta">ابدأ مجانًا</a>
+          <a class="btn btn-ghost lp-btn-lg" href="#how" data-i18n="hero_secondary">شاهد طريقة العمل</a>
+        </div>
+      </div>
+
+      <div class="lp-demo" aria-hidden="true">
+        <div class="lp-tile lp-tile-temp">
+          <span class="lp-label" data-i18n="demo_temp">درجة الحرارة</span>
+          <span class="lp-big"><span id="lp-temp">22.0</span><small>°C</small></span>
+          <svg class="lp-spark" viewBox="0 0 200 60" preserveAspectRatio="none">
+            <path class="lp-spark-line" pathLength="1" d="M0 44 L25 30 L50 36 L75 18 L100 26 L125 12 L150 22 L175 8 L200 14"/>
+          </svg>
+        </div>
+
+        <div class="lp-tile lp-tile-gauge">
+          <span class="lp-label" data-i18n="demo_humidity">الرطوبة</span>
+          <svg class="lp-gauge" viewBox="0 0 120 70">
+            <path class="lp-gauge-track" d="M10 62 A50 50 0 0 1 110 62"/>
+            <path class="lp-gauge-fill" pathLength="1" d="M10 62 A50 50 0 0 1 110 62"/>
+          </svg>
+          <span class="lp-big lp-big-sm">64<small>%</small></span>
+        </div>
+
+        <div class="lp-tile lp-tile-switch">
+          <span class="lp-label" data-i18n="demo_led">الضوء</span>
+          <span class="lp-switch"><span class="lp-knob"></span></span>
+          <span class="lp-state" data-i18n="demo_on">تشغيل</span>
+        </div>
+
+        <div class="lp-tile lp-tile-lamp">
+          <span class="lp-lamp"></span>
+          <span class="lp-label" data-i18n="demo_alarm">إنذار</span>
+        </div>
+
+        <div class="lp-tile lp-tile-bar">
+          <span class="lp-label" data-i18n="demo_battery">البطارية</span>
+          <span class="lp-bar"><span class="lp-bar-fill"></span></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="lp-section reveal" id="objectives">
+      <p class="lp-kicker" data-i18n="objectives_kicker">لماذا IoTDeck</p>
+      <h2 class="lp-h2" data-i18n="objectives_title">صُنعت لتساعد الطلاب على التعلّم بالبناء</h2>
+      <div class="lp-cards">
+        <article class="card lp-card">
+          <span class="lp-icon" aria-hidden="true">✓</span>
+          <h3 data-i18n="obj1_title">مجاني للطلاب</h3>
+          <p data-i18n="obj1_text">لا تكلفة لإنشاء الأجهزة أو اللوحات. تعلّم إنترنت الأشياء دون ميزانية لمنصة سحابية.</p>
+        </article>
+        <article class="card lp-card">
+          <span class="lp-icon" aria-hidden="true">⚡</span>
+          <h3 data-i18n="obj2_title">تعلّم بالبناء</h3>
+          <p data-i18n="obj2_text">وصّل ESP32 حقيقيًا، وشاهد بياناته خلال ثوانٍ، وافهم كيف تتواصل الأجهزة مع الويب.</p>
+        </article>
+        <article class="card lp-card">
+          <span class="lp-icon" aria-hidden="true">◎</span>
+          <h3 data-i18n="obj3_title">مفتوح للمجتمع</h3>
+          <p data-i18n="obj3_text">الكود مفتوح المصدر. اقرأه وعدّله وطوّره مع غيرك من المهتمين.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="lp-section reveal" id="how">
+      <p class="lp-kicker" data-i18n="how_kicker">كيف يعمل</p>
+      <h2 class="lp-h2" data-i18n="how_title">ثلاث خطوات من اللوحة إلى المتصفح</h2>
+      <ol class="lp-steps">
+        <li class="card lp-step">
+          <span class="lp-step-num">1</span>
+          <h3 data-i18n="step1_title">أنشئ جهازًا</h3>
+          <p data-i18n="step1_text">سمِّ الجهاز في لوحتك. ستحصل على مفتاح يُعرض مرة واحدة.</p>
+        </li>
+        <li class="card lp-step">
+          <span class="lp-step-num">2</span>
+          <h3 data-i18n="step2_title">وصّل لوحتك</h3>
+          <p data-i18n="step2_text">ضع المفتاح في كود ESP32 وارفعه إلى اللوحة.</p>
+        </li>
+        <li class="card lp-step">
+          <span class="lp-step-num">3</span>
+          <h3 data-i18n="step3_title">ابنِ لوحتك</h3>
+          <p data-i18n="step3_text">أضف عناصر للقراءات والتحكم، ثم خصّص الألوان وصورة الخلفية.</p>
+        </li>
+      </ol>
+    </section>
+
+    <section class="lp-section reveal" id="features">
+      <p class="lp-kicker" data-i18n="features_kicker">العناصر</p>
+      <h2 class="lp-h2" data-i18n="features_title">اختر ما تحتاجه</h2>
+      <p class="lp-sub" data-i18n="features_lead">عناصر الإدخال ترسل أوامر إلى اللوحة، وعناصر الإخراج تعرض ما تقيسه اللوحة.</p>
+
+      <h3 class="lp-group" data-i18n="feat_input">إدخال: ترسل إلى اللوحة</h3>
+      <div class="lp-chips">
+        <span class="lp-chip" data-i18n="feat_switch">مفتاح تشغيل</span>
+        <span class="lp-chip" data-i18n="feat_button">زر</span>
+        <span class="lp-chip" data-i18n="feat_slider">منزلق</span>
+      </div>
+
+      <h3 class="lp-group" data-i18n="feat_output">إخراج: تعرض من اللوحة</h3>
+      <div class="lp-chips">
+        <span class="lp-chip" data-i18n="feat_value">قيمة</span>
+        <span class="lp-chip" data-i18n="feat_text">نص</span>
+        <span class="lp-chip" data-i18n="feat_gauge">مقياس</span>
+        <span class="lp-chip" data-i18n="feat_bar">شريط تقدّم</span>
+        <span class="lp-chip" data-i18n="feat_line">رسم مباشر</span>
+        <span class="lp-chip" data-i18n="feat_lamp">مصباح حالة</span>
+      </div>
+    </section>
+
+    <section class="lp-section lp-split reveal">
+      <div>
+        <p class="lp-kicker" data-i18n="custom_kicker">خصّصها</p>
+        <h2 class="lp-h2" data-i18n="custom_title">لكل جهاز شكله الخاص</h2>
+        <p class="lp-sub" data-i18n="custom_text">اختر لونًا أساسيًا، أو خلفية جاهزة، أو ارفع صورتك الخاصة.</p>
+      </div>
+      <div class="lp-swatches" aria-hidden="true">
+        <span style="--c:#7c8cff"></span><span style="--c:#3ee3b5"></span><span style="--c:#ffb86b"></span><span style="--c:#ff6b8a"></span><span style="--c:#5ec8ff"></span><span style="--c:#c792ea"></span>
+      </div>
+    </section>
+
+    <section class="lp-section lp-open reveal" id="open">
+      <p class="lp-kicker" data-i18n="open_kicker">مجاني ومفتوح المصدر</p>
+      <h2 class="lp-h2" data-i18n="open_title">يستطيع أي شخص استخدامه، ويستطيع أي شخص تطويره.</h2>
+      <p class="lp-sub" data-i18n="open_text">IoTDeck مجاني للاستخدام، والكود منشور على GitHub. أبلغ عن خلل، أو اقترح عنصرًا، أو أرسل تعديلًا.</p>
+      <a class="btn btn-ghost lp-btn-lg" href="https://github.com/iotdeck/iotdeck-site" target="_blank" rel="noopener" data-i18n="open_github">اعرض الكود على GitHub</a>
+    </section>
+
+    <section class="lp-final reveal">
+      <h2 class="lp-h2" data-i18n="final_title">هل أنت مستعد لرؤية أول قراءة؟</h2>
+      <a class="btn btn-primary lp-btn-lg" href="/signin" data-i18n="final_cta">أنشئ حسابًا مجانيًا</a>
+    </section>
+  </main>
+
+  <footer class="lp-footer">
+    <span data-i18n="footer_text">IoTDeck — لوحات IoT مجانية لطلاب الأعمال اليدوية.</span>
+    <a href="https://github.com/iotdeck/iotdeck-site" target="_blank" rel="noopener" data-i18n="footer_github">GitHub</a>
+  </footer>
+
+  <script src="/i18n.js" defer></script>
+  <script src="/landing.js" defer></script>
+</body>
+</html>
