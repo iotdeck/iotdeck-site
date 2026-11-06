@@ -95,6 +95,21 @@
     return device.online ? 'live' : 'offline';
   }
 
+  // Every board gets the same line. Connected: the time it connected. Not connected: when it was last heard.
+  function statusLine(device, status) {
+    if (status === 'offline') {
+      return device.lastSeen ? `${t('offline')} · ${t('last_seen', { t: timeAgo(device.lastSeen) })}` : t('offline');
+    }
+    const since = device.onlineSince;
+    if (!since) return t('live');
+    const d = new Date(since);
+    const sameDay = d.toDateString() === new Date().toDateString();
+    const when = sameDay
+      ? d.toLocaleTimeString(numberLocale, { hour: 'numeric', minute: '2-digit' })
+      : d.toLocaleString(numberLocale, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    return t('connected_since', { t: when });
+  }
+
   function isOnline(device) {
     return deviceStatus(device) !== 'offline';
   }
@@ -165,11 +180,10 @@
       const item = h(
         'div',
         {
-          class: 'device-item',
+          class: `device-item${selected ? ' selected' : ''}`,
           role: 'button',
           tabindex: '0',
           'aria-pressed': String(selected),
-          style: selected ? 'background:var(--surface-hover);border-color:var(--border-strong);' : null,
           onclick: () => openDevicePage(device.id),
           onkeydown: (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -184,7 +198,8 @@
           { class: 'meta' },
           h('span', { class: 'name', text: device.name }),
           // Every board uses the same line: its status, then the time of its last value (a dash if it has sent none)
-          h('span', { class: 'sub', text: `${t(status)} · ${device.lastSeen ? timeAgo(device.lastSeen) : '—'}` }),
+          h('span', { class: 'sub', text: statusLine(device, status) }),
+          selected ? h('span', { class: 'viewing', text: t('viewing_now') }) : null,
         ),
         h('span', {
           class: 'widget-remove',
@@ -205,6 +220,12 @@
     }
   }
 
+  // On phones the device list scrolls sideways: keep the selected device in view
+  function revealSelected() {
+    const el = document.querySelector('#device-list .device-item.selected');
+    if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
+
   function renderStats() {
     const devices = [...state.devices.values()];
     const online = devices.filter(isOnline).length;
@@ -222,7 +243,7 @@
     row.replaceChildren();
     if (state.focusPage) {
       row.append(
-        h('a', { class: 'btn btn-ghost', href: '/dashboard', text: t('back_all') }),
+        h('a', { class: 'btn btn-ghost', href: '/dashboard?all=1', text: t('back_all') }),
         h('button', { class: 'btn btn-ghost', type: 'button', onclick: openThemeModal, text: t('customize') }),
         h('button', { class: 'btn btn-ghost', type: 'button', onclick: () => openSetup(state.filter), text: t('device_setup') }),
       );
@@ -791,6 +812,8 @@
       if (!device) return;
       // The board applied a command: show it now, before its next report
       if (msg.type === 'ack') {
+        device.online = true;
+        if (!device.onlineSince) device.onlineSince = Date.now();
         device.latest = { ...(device.latest || {}), [msg.field]: msg.value };
         device.fields = { ...(device.fields || {}), [msg.field]: { value: msg.value, ts: msg.ts || Date.now() } };
         refreshDevice(deviceId);
@@ -799,12 +822,14 @@
       // The board connected to the dashboard
       if (msg.type === 'hello') {
         device.online = true;
+        if (!device.onlineSince) device.onlineSince = Date.now();
         renderSidebar();
         renderStats();
         return;
       }
       if (msg.type !== 'reading' || !msg.data) return;
       device.online = true;
+      if (!device.onlineSince) device.onlineSince = msg.ts || Date.now();
       device.latest = msg.data;
       // Each value keeps its own time, so a gadget that did not change keeps its old time
       device.fields = { ...(device.fields || {}) };
@@ -853,6 +878,7 @@
 
     for (const widget of widgets) connectDevice(widget.deviceId);
     renderAll();
+    revealSelected();
   }
 
   function renderAll() {
@@ -1479,6 +1505,17 @@
       state.focusPage = true;
     }
 
+    // Without a chosen device, open the first one (?all=1 shows the overview)
+    if (!focus && !new URLSearchParams(location.search).has('all')) {
+      try {
+        const { devices } = await api('/api/devices');
+        if (devices.length) {
+          location.replace(`/dashboard?device=${encodeURIComponent(devices[0].id)}`);
+          return;
+        }
+      } catch {}
+    }
+
     renderGadgetGrid();
     syncWidgetFormType();
     await refreshAll();
@@ -1495,6 +1532,7 @@
           cur.latest = d.latest;
           cur.fields = d.fields;
           cur.online = d.online;
+          cur.onlineSince = d.onlineSince;
           if (changed) refreshDevice(d.id);
         }
         renderSidebar();

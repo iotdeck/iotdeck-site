@@ -555,3 +555,33 @@ html[lang="ar"] [data-lang="en"], html[lang="en"] [data-lang="ar"] { display: no
 .verify-box h2 { font-size: 20px; margin: 0; }
 .verify-box p { margin: 0; line-height: 1.7; }
 .verify-hint { color: var(--text-dim); font-size: 14px; }
+
+/* Selected device: accent bar on the leading edge, brighter name, and a text marker */
+.device-item { position: relative; }
+.device-item.selected { background: var(--surface-hover); border-color: var(--border-strong); }
+.device-item.selected::before {
+  content: ''; position: absolute; inset-block: 8px; inset-inline-start: 0; width: 3px;
+  border-radius: 2px; background: var(--accent); box-shadow: 0 0 10px var(--accent-glow, rgba(124,140,255,.5));
+}
+.device-item .viewing { font-size: 11px; letter-spacing: .04em; color: var(--accent); font-weight: 600; }
+
+/* Device setup window: wider */
+#device-modal .modal { width: min(720px, 100%); }
+
+/* ---------- Phones, round two ---------- */
+@media (max-width: 640px) {
+  /* Device cards: a swipe row where the next card peeks in, so it is clear there are more */
+  .device-list { scroll-padding-inline: 4px; -webkit-overflow-scrolling: touch; }
+  .device-item { width: auto; flex: 0 0 74%; min-width: 0; }
+  .device-item.selected { flex-basis: 82%; }
+  /* Account row: one compact line instead of a tall stack */
+  .sidebar-foot { flex-wrap: nowrap; align-items: center; gap: 8px; }
+  .sidebar-foot .btn { flex: 0 1 auto; min-height: 40px; padding-inline: 14px; }
+  .user-chip { width: auto; flex: 1 1 auto; min-width: 0; overflow: hidden; }
+  .user-chip span:not(.avatar) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Three counters in a row, usage underneath */
+  .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .stat { padding: 12px; }
+  .stat .label { font-size: 12px; }
+  .stat .value { font-size: 20px; }
+}
