@@ -230,6 +230,12 @@ type_bar: 'شريط تقدّم',      type_indicator: 'مؤشر حالة',
       footer_bala_link: 'balacode.org',
       footer_site: 'كود الموقع على GitHub',
       footer_lib: 'مكتبة ESP32 على GitHub',
+      footer_privacy: 'سياسة الخصوصية',
+      footer_terms: 'شروط الاستخدام',
+      page_privacy: 'IoTDeck — سياسة الخصوصية',
+      page_terms: 'IoTDeck — شروط الاستخدام',
+      legal_back: 'العودة إلى الصفحة الرئيسية',
+      legal_agree: 'بمتابعتك فإنك توافق على',
       add_widget_submit: 'إضافة العنصر',
       edit_widget: 'تعديل العنصر',
       edit_widget_title: 'تعديل العنصر',
@@ -478,6 +484,12 @@ type_bar: 'Progress bar',      type_indicator: 'Status lamp',
       footer_bala_link: 'balacode.org',
       footer_site: 'Website code on GitHub',
       footer_lib: 'ESP32 library on GitHub',
+      footer_privacy: 'Privacy Policy',
+      footer_terms: 'Terms of Use',
+      page_privacy: 'IoTDeck — Privacy Policy',
+      page_terms: 'IoTDeck — Terms of Use',
+      legal_back: 'Back to the home page',
+      legal_agree: 'By continuing you agree to the',
       add_widget_submit: 'Add widget',
       edit_widget: 'Edit widget',
       edit_widget_title: 'Edit widget',
@@ -520,7 +532,7 @@ type_bar: 'Progress bar',      type_indicator: 'Status lamp',
   function applyStatic() {
     document.documentElement.lang = current;
     document.documentElement.dir = current === 'ar' ? 'rtl' : 'ltr';
-    const pages = { dashboard: 'page_dashboard', home: 'page_home', signin: 'page_signin' };
+    const pages = { dashboard: 'page_dashboard', home: 'page_home', signin: 'page_signin', privacy: 'page_privacy', terms: 'page_terms' };
     document.title = t(pages[document.documentElement.dataset.page] || 'page_signin');
     document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
     document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => { el.setAttribute('placeholder', t(el.dataset.i18nPlaceholder)); });
