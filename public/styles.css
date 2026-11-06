@@ -549,3 +549,9 @@ html[lang="ar"] [data-lang="en"], html[lang="en"] [data-lang="ar"] { display: no
 .legal-note { text-align: center; font-size: 13px; color: var(--text-faint); margin: 18px 0 0; }
 .legal-note a { color: var(--text-dim); text-decoration: underline; text-underline-offset: 3px; }
 
+
+/* Email confirmation panel on the sign-in page */
+.verify-box { display: grid; gap: 12px; margin-top: 8px; }
+.verify-box h2 { font-size: 20px; margin: 0; }
+.verify-box p { margin: 0; line-height: 1.7; }
+.verify-hint { color: var(--text-dim); font-size: 14px; }

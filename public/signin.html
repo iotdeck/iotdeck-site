@@ -51,6 +51,15 @@
         <p class="error" id="error" role="alert"></p>
         <button class="btn btn-primary btn-block" id="submit" type="submit" data-i18n="submit_signin">تسجيل الدخول</button>
       </form>
+
+      <div class="verify-box" id="verify-box" hidden>
+        <h2 id="verify-title" data-i18n="verify_title">تحقق من بريدك الإلكتروني</h2>
+        <p id="verify-text"></p>
+        <p class="verify-hint" data-i18n="verify_hint">إذا لم تجد الرسالة، تحقق من مجلد الرسائل غير المرغوبة (Spam).</p>
+        <p class="error" id="verify-error" role="alert"></p>
+        <button class="btn btn-ghost btn-block" id="verify-resend" type="button" data-i18n="verify_resend">إعادة إرسال الرابط</button>
+        <button class="btn btn-ghost btn-block" id="verify-back" type="button" data-i18n="verify_back">العودة</button>
+      </div>
     </section>
     <p class="legal-note"><span data-i18n="legal_agree">بمتابعتك فإنك توافق على</span> <a href="/terms" data-i18n="footer_terms">شروط الاستخدام</a> · <a href="/privacy" data-i18n="footer_privacy">سياسة الخصوصية</a></p>
   </main>
