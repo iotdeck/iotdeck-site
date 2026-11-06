@@ -1,5 +1,16 @@
 /* IoTDeck design system */
 
+/* Fonts are served from this site (the security rules only allow our own files).
+   Chakra Petch for English, Mada for Arabic. Both are open fonts (OFL licence, see /fonts). */
+@font-face { font-family: 'Chakra Petch'; font-style: normal; font-weight: 400; font-display: swap; src: url(/fonts/chakra-petch-latin-400.woff2) format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'Chakra Petch'; font-style: normal; font-weight: 500; font-display: swap; src: url(/fonts/chakra-petch-latin-500.woff2) format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'Chakra Petch'; font-style: normal; font-weight: 600; font-display: swap; src: url(/fonts/chakra-petch-latin-600.woff2) format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'Chakra Petch'; font-style: normal; font-weight: 700; font-display: swap; src: url(/fonts/chakra-petch-latin-700.woff2) format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'Mada'; font-style: normal; font-weight: 200 900; font-display: swap; src: url(/fonts/mada-arabic.woff2) format('woff2'); unicode-range: U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0897-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC,U+102E0-102FB,U+10E60-10E7E,U+10EC2-10EC4,U+10EFC-10EFF,U+1EE00-1EE03,U+1EE05-1EE1F,U+1EE21-1EE22,U+1EE24,U+1EE27,U+1EE29-1EE32,U+1EE34-1EE37,U+1EE39,U+1EE3B,U+1EE42,U+1EE47,U+1EE49,U+1EE4B,U+1EE4D-1EE4F,U+1EE51-1EE52,U+1EE54,U+1EE57,U+1EE59,U+1EE5B,U+1EE5D,U+1EE5F,U+1EE61-1EE62,U+1EE64,U+1EE67-1EE6A,U+1EE6C-1EE72,U+1EE74-1EE77,U+1EE79-1EE7C,U+1EE7E,U+1EE80-1EE89,U+1EE8B-1EE9B,U+1EEA1-1EEA3,U+1EEA5-1EEA9,U+1EEAB-1EEBB,U+1EEF0-1EEF1; }
+@font-face { font-family: 'Mada'; font-style: normal; font-weight: 200 900; font-display: swap; src: url(/fonts/mada-latin-ext.woff2) format('woff2'); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: 'Mada'; font-style: normal; font-weight: 200 900; font-display: swap; src: url(/fonts/mada-latin.woff2) format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+
+
 :root {
   --bg: #06080f;
   --bg-2: #0b0f1c;
@@ -19,8 +30,8 @@
   --radius-md: 14px;
   --radius-sm: 10px;
   --shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 20px 50px -20px rgba(0, 0, 0, 0.6);
-  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font: 'Chakra Petch', 'Mada', system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Mada', monospace;
 }
 
 * { box-sizing: border-box; }
@@ -198,7 +209,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .widget-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .widget-title { font-weight: 600; font-size: 14px; color: var(--text-dim); }
 .widget-device { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
-.field-chip { display: inline-block; margin-inline-start: 6px; padding: 1px 8px; border-radius: 999px; font-family: Consolas, monospace; font-size: 11px; color: var(--accent); background: rgba(124, 140, 255, .15); }
+.field-chip { display: inline-block; margin-inline-start: 8px; font-family: Consolas, monospace; font-size: 11px; color: var(--accent); }
 .widget-remove {
   opacity: 0; border: 0; background: transparent; color: var(--text-faint); cursor: pointer;
   width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center;
@@ -206,7 +217,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .widget:hover .widget-remove { opacity: 1; }
 .widget-remove:hover { background: rgba(255,107,138,.12); color: var(--danger); }
 .widget-actions { display: flex; gap: 2px; align-items: center; }
-.recv-toggle { font-size: 11px; padding: 3px 9px; margin-inline-end: 4px; border-radius: 999px; border: 1px solid var(--border-strong); background: transparent; color: var(--text-dim); cursor: pointer; }
+.recv-toggle { font-size: 11px; padding: 3px 9px; margin-inline-end: 4px; border-radius: 6px; border: 1px solid var(--border-strong); background: transparent; color: var(--text-dim); cursor: pointer; }
 .recv-toggle[aria-pressed="false"] { opacity: .6; }
 .widget-edit:hover { background: rgba(127,127,127,.14); color: var(--text); }
 
@@ -394,11 +405,12 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .activity-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .activity-device { font-size: 12px; color: var(--text-faint); }
 .activity-detail { font-size: 15px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; text-align: start; overflow-wrap: anywhere; }
-.activity-kind { font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 999px; justify-self: start; }
-.activity-kind.command { background: rgba(62, 227, 181, .15); color: var(--accent-2); }
-.activity-kind.received { background: rgba(124, 140, 255, .15); color: var(--accent); }
-.activity-kind.rejected { background: rgba(255, 107, 138, .15); color: var(--danger); }
-.activity-kind.unknown { background: rgba(255, 184, 77, .15); color: #ffb84d; }
+.activity-kind { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; justify-self: start; }
+.activity-kind::before { content: ""; width: 7px; height: 7px; background: currentColor; flex: none; }
+.activity-kind.command { color: var(--accent-2); }
+.activity-kind.received { color: var(--accent); }
+.activity-kind.rejected { color: var(--danger); }
+.activity-kind.unknown { color: #ffb84d; }
 .notice { margin-bottom: 16px; padding: 14px 16px; border-radius: 14px; border: 1px solid rgba(255, 184, 77, .4); background: rgba(255, 184, 77, .08); }
 .notice-text { margin: 0 0 10px; }
 .activity-empty { color: var(--text-dim); padding: 10px 4px; }
@@ -519,3 +531,6 @@ body[data-bg="custom"] {
 .art-lamp { animation: art-lamp 2.4s ease-in-out infinite; }
 @keyframes art-glow { 0%, 100% { opacity: .0; } 50% { opacity: .35; } }
 @keyframes art-lamp { 0%, 100% { fill: rgba(255,255,255,.15); } 50% { fill: var(--accent-2); } }
+
+/* Arabic letters connect to each other, so spacing between letters breaks the words */
+:lang(ar) *, :lang(ar) *::before, :lang(ar) *::after { letter-spacing: 0 !important; }
