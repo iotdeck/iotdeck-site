@@ -7,167 +7,265 @@
   <meta name="description" content="IoTDeck is a free, open source web dashboard for ESP32 projects. See sensor readings live and control your board from any browser.">
   <link rel="icon" href="/logo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/home.css">
 </head>
-<body class="lp-body">
-  <div class="lp-bg" aria-hidden="true"><span class="lp-blob lp-blob-a"></span><span class="lp-blob lp-blob-b"></span></div>
+<body class="home-body">
+  <div class="home-bg" aria-hidden="true"></div>
+  <div class="home-glow" aria-hidden="true"></div>
 
-  <header class="lp-nav">
+  <header class="home-nav">
     <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span>IoTDeck</a>
-    <nav class="lp-links" aria-label="Main">
-      <a href="#features" data-i18n="nav_features">المميزات</a>
+    <nav class="home-links" aria-label="Main">
       <a href="#how" data-i18n="nav_how">كيف يعمل</a>
+      <a href="#features" data-i18n="nav_features">المميزات</a>
       <a href="#open" data-i18n="nav_open">مفتوح المصدر</a>
     </nav>
-    <div class="lp-nav-actions">
+    <div class="home-actions">
       <button class="btn btn-ghost" id="lang-toggle" type="button">English</button>
-      <a class="btn btn-ghost lp-hide-sm" href="/signin" data-i18n="nav_signin">تسجيل الدخول</a>
+      <a class="btn btn-ghost home-hide-sm" href="/signin" data-i18n="nav_signin">تسجيل الدخول</a>
       <a class="btn btn-primary" href="/signin" data-i18n="nav_start">ابدأ مجانًا</a>
     </div>
   </header>
 
   <main>
-    <section class="lp-hero">
-      <div class="lp-hero-text">
-        <span class="lp-badge" data-i18n="hero_badge">مجاني · مفتوح المصدر · للطلاب</span>
-        <h1 class="lp-title" data-i18n="hero_title">جهاز ESP32 الخاص بك، حيًّا على لوحة تحكم</h1>
-        <p class="lp-lead" data-i18n="hero_lead">تمنح IoTDeck طلاب الأعمال اليدوية والمهتمين بالإلكترونيات لوحة ويب جاهزة. أرسل قراءات المستشعرات من لوحتك، وشاهدها مباشرة، وتحكّم بها بمفتاح من أي متصفح.</p>
-        <div class="lp-cta">
-          <a class="btn btn-primary lp-btn-lg" href="/signin" data-i18n="hero_cta">ابدأ مجانًا</a>
-          <a class="btn btn-ghost lp-btn-lg" href="#how" data-i18n="hero_secondary">شاهد طريقة العمل</a>
+    <section class="home-hero">
+      <div class="home-hero-text">
+        <span class="home-badge" data-i18n="hero_badge">مجاني · مفتوح المصدر · للطلاب</span>
+        <h1 class="home-title" data-i18n="hero_title">جهاز ESP32 الخاص بك، حيًّا على لوحة تحكم</h1>
+        <p class="home-lead" data-i18n="hero_lead">تمنح IoTDeck طلاب الأعمال اليدوية والمهتمين بالإلكترونيات لوحة ويب جاهزة. أرسل قراءات المستشعرات من لوحتك، وشاهدها مباشرة، وتحكّم بها بمفتاح من أي متصفح.</p>
+        <div class="home-cta">
+          <a class="btn btn-primary home-btn-lg" href="/signin" data-i18n="hero_cta">ابدأ مجانًا</a>
+          <a class="btn btn-ghost home-btn-lg" href="#how" data-i18n="hero_secondary">شاهد طريقة العمل</a>
         </div>
+        <p class="home-hint" data-i18n="hub_hint">مرّر المؤشر فوق الدبابيس والعناصر لترى ما يحدث</p>
       </div>
 
-      <div class="lp-demo" aria-hidden="true">
-        <div class="lp-tile lp-tile-temp">
-          <span class="lp-label" data-i18n="demo_temp">درجة الحرارة</span>
-          <span class="lp-big"><span id="lp-temp">22.0</span><small>°C</small></span>
-          <svg class="lp-spark" viewBox="0 0 200 60" preserveAspectRatio="none">
-            <path class="lp-spark-line" pathLength="1" d="M0 44 L25 30 L50 36 L75 18 L100 26 L125 12 L150 22 L175 8 L200 14"/>
+      <div class="home-hub" id="hub" data-led="off">
+        <svg class="home-traces" viewBox="0 0 640 480" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <path id="p-temp" class="trace-base" d="M224 202 C296 202 312 110 380 110"/>
+          <path id="p-humidity" class="trace-base" d="M224 292 C296 292 312 240 380 240"/>
+          <path id="p-switch" class="trace-base" d="M224 400 C296 400 312 370 380 370"/>
+          <g class="trace trace-temp">
+            <path class="trace-flow" d="M224 202 C296 202 312 110 380 110"/>
+            <circle class="trace-dot" r="3.5"><animateMotion dur="2.4s" repeatCount="indefinite" keyPoints="0;1" keyTimes="0;1" calcMode="linear"><mpath href="#p-temp"/></animateMotion></circle>
+          </g>
+          <g class="trace trace-humidity">
+            <path class="trace-flow" d="M224 292 C296 292 312 240 380 240"/>
+            <circle class="trace-dot" r="3.5"><animateMotion dur="3s" begin="-1s" repeatCount="indefinite"><mpath href="#p-humidity"/></animateMotion></circle>
+          </g>
+          <g class="trace trace-switch">
+            <path class="trace-flow" d="M224 400 C296 400 312 370 380 370"/>
+            <circle class="trace-dot" r="3.5"><animateMotion dur="2s" begin="-0.6s" repeatCount="indefinite"><mpath href="#p-switch"/></animateMotion></circle>
+          </g>
+        </svg>
+
+        <div class="home-board">
+          <div class="board-inner" id="board">
+            <svg class="board-svg" viewBox="0 0 170 430" role="img" aria-label="ESP32">
+              <defs>
+                <linearGradient id="bodyG" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#16213d"/>
+                  <stop offset="1" stop-color="#090e1c"/>
+                </linearGradient>
+                <linearGradient id="chipG" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#2d3a62"/>
+                  <stop offset="1" stop-color="#111a33"/>
+                </linearGradient>
+                <pattern id="gridP" width="10" height="10" patternUnits="userSpaceOnUse">
+                  <path d="M10 0H0V10" fill="none" stroke="rgba(124,140,255,.09)" stroke-width=".6"/>
+                </pattern>
+              </defs>
+              <rect x="0" y="0" width="170" height="430" rx="16" fill="url(#bodyG)" stroke="rgba(124,140,255,.35)"/>
+              <rect x="6" y="6" width="158" height="418" rx="12" fill="url(#gridP)"/>
+              <path d="M40 34 L52 12 L64 34 L76 12 L88 34 L100 12 L112 34 L124 12 L130 34" fill="none" stroke="#d7b56b" stroke-width="2" stroke-linejoin="round"/>
+
+              <g class="chip" data-tip="tip_chip" tabindex="0">
+                <rect class="chip-glow" x="30" y="34" width="110" height="96" rx="12"/>
+                <rect class="chip-body" x="36" y="42" width="98" height="84" rx="8" fill="url(#chipG)" stroke="rgba(255,255,255,.18)"/>
+                <text x="85" y="84" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace" font-size="13" fill="#eef1f8" letter-spacing="2">ESP32</text>
+                <text x="85" y="102" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace" font-size="7" fill="#9aa3b8" letter-spacing="1.5">WI-FI · BLE</text>
+              </g>
+
+              <g class="led" data-tip="pin_led" tabindex="0" data-signal="switch">
+                <circle class="led-halo" cx="122" cy="162" r="12"/>
+                <circle class="led-core" cx="122" cy="162" r="5"/>
+              </g>
+
+              <rect x="60" y="404" width="50" height="20" rx="4" fill="#070b15" stroke="rgba(255,255,255,.18)"/>
+
+              <!-- Left pins (top to bottom) -->
+              <g class="pin" data-name="3V3" data-role="pin_power" tabindex="0"><rect x="12" y="132" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="EN" data-role="pin_generic" tabindex="0"><rect x="12" y="150" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="GPIO36" data-role="pin_generic" tabindex="0"><rect x="12" y="168" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="GPIO39" data-role="pin_generic" tabindex="0"><rect x="12" y="186" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="GPIO34" data-role="pin_generic" tabindex="0"><rect x="12" y="204" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="GPIO35" data-role="pin_generic" tabindex="0"><rect x="12" y="222" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="GPIO32" data-role="pin_generic" tabindex="0"><rect x="12" y="240" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="GPIO33" data-role="pin_generic" tabindex="0"><rect x="12" y="258" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="GPIO25" data-role="pin_generic" tabindex="0"><rect x="12" y="276" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="GPIO26" data-role="pin_generic" tabindex="0"><rect x="12" y="294" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="GPIO27" data-role="pin_generic" tabindex="0"><rect x="12" y="312" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="GPIO14" data-role="pin_generic" tabindex="0"><rect x="12" y="330" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="GPIO12" data-role="pin_generic" tabindex="0"><rect x="12" y="348" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="GND" data-role="pin_gnd" tabindex="0"><rect x="12" y="366" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="GPIO13" data-role="pin_generic" tabindex="0"><rect x="12" y="384" width="9" height="8" rx="1.5"/></g>
+
+              <!-- Right pins (top to bottom) -->
+              <g class="pin" data-name="GND" data-role="pin_gnd" tabindex="0"><rect x="149" y="132" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="GPIO23" data-role="pin_generic" tabindex="0"><rect x="149" y="150" width="9" height="8" rx="1.5"/></g>
+              <g class="pin pin-temp" data-name="GPIO22" data-role="pin_temp" data-signal="temp" tabindex="0"><rect x="149" y="168" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="TXD0" data-role="pin_generic" tabindex="0"><rect x="149" y="186" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="RXD0" data-role="pin_generic" tabindex="0"><rect x="149" y="204" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="GPIO21" data-role="pin_generic" tabindex="0"><rect x="149" y="222" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="GND" data-role="pin_gnd" tabindex="0"><rect x="149" y="240" width="9" height="8" rx="1.5"/></g>
+              <g class="pin pin-humidity" data-name="GPIO19" data-role="pin_humidity" data-signal="humidity" tabindex="0"><rect x="149" y="258" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="GPIO18" data-role="pin_generic" tabindex="0"><rect x="149" y="276" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="GPIO5" data-role="pin_generic" tabindex="0"><rect x="149" y="294" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="GPIO17" data-role="pin_generic" tabindex="0"><rect x="149" y="312" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="GPIO16" data-role="pin_generic" tabindex="0"><rect x="149" y="330" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="GPIO4" data-role="pin_generic" tabindex="0"><rect x="149" y="348" width="9" height="8" rx="1.5"/></g>
+              <g class="pin pin-led" data-name="GPIO2" data-role="pin_led" data-signal="switch" tabindex="0"><rect x="149" y="366" width="9" height="8" rx="1.5"/></g>
+              <g class="pin" data-name="GPIO15" data-role="pin_generic" tabindex="0"><rect x="149" y="384" width="9" height="8" rx="1.5"/></g>
+            </svg>
+          </div>
+        </div>
+
+        <article class="hub-tile tile-temp" data-signal="temp" tabindex="0">
+          <span class="home-label" data-i18n="demo_temp">درجة الحرارة</span>
+          <span class="home-big"><span id="temp-value">22.0</span><small>°C</small></span>
+          <svg class="home-spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+            <path id="spark" d="M0 20 L200 20"/>
           </svg>
-        </div>
+        </article>
 
-        <div class="lp-tile lp-tile-gauge">
-          <span class="lp-label" data-i18n="demo_humidity">الرطوبة</span>
-          <svg class="lp-gauge" viewBox="0 0 120 70">
-            <path class="lp-gauge-track" d="M10 62 A50 50 0 0 1 110 62"/>
-            <path class="lp-gauge-fill" pathLength="1" d="M10 62 A50 50 0 0 1 110 62"/>
-          </svg>
-          <span class="lp-big lp-big-sm">64<small>%</small></span>
-        </div>
+        <article class="hub-tile tile-humidity" data-signal="humidity" tabindex="0">
+          <div class="tile-row">
+            <div>
+              <span class="home-label" data-i18n="demo_humidity">الرطوبة</span>
+              <span class="home-big home-big-sm"><span id="hum-value">64</span><small>%</small></span>
+            </div>
+            <svg class="home-gauge" viewBox="0 0 120 70" aria-hidden="true">
+              <path class="gauge-track" d="M10 62 A50 50 0 0 1 110 62"/>
+              <path id="gauge-fill" class="gauge-fill" pathLength="1" d="M10 62 A50 50 0 0 1 110 62"/>
+            </svg>
+          </div>
+        </article>
 
-        <div class="lp-tile lp-tile-switch">
-          <span class="lp-label" data-i18n="demo_led">الضوء</span>
-          <span class="lp-switch"><span class="lp-knob"></span></span>
-          <span class="lp-state" data-i18n="demo_on">تشغيل</span>
-        </div>
-
-        <div class="lp-tile lp-tile-lamp">
-          <span class="lp-lamp"></span>
-          <span class="lp-label" data-i18n="demo_alarm">إنذار</span>
-        </div>
-
-        <div class="lp-tile lp-tile-bar">
-          <span class="lp-label" data-i18n="demo_battery">البطارية</span>
-          <span class="lp-bar"><span class="lp-bar-fill"></span></span>
-        </div>
+        <button class="hub-tile tile-switch" type="button" data-signal="switch" aria-pressed="false">
+          <span class="home-label" data-i18n="demo_led">الضوء</span>
+          <span class="tile-row">
+            <span class="home-toggle"><span class="home-knob"></span></span>
+            <span class="home-state" id="switch-state" data-i18n="demo_off">إيقاف</span>
+          </span>
+        </button>
       </div>
     </section>
 
-    <section class="lp-section reveal" id="objectives">
-      <p class="lp-kicker" data-i18n="objectives_kicker">لماذا IoTDeck</p>
-      <h2 class="lp-h2" data-i18n="objectives_title">صُنعت لتساعد الطلاب على التعلّم بالبناء</h2>
-      <div class="lp-cards">
-        <article class="card lp-card">
-          <span class="lp-icon" aria-hidden="true">✓</span>
-          <h3 data-i18n="obj1_title">مجاني للطلاب</h3>
-          <p data-i18n="obj1_text">لا تكلفة لإنشاء الأجهزة أو اللوحات. تعلّم إنترنت الأشياء دون ميزانية لمنصة سحابية.</p>
-        </article>
-        <article class="card lp-card">
-          <span class="lp-icon" aria-hidden="true">⚡</span>
-          <h3 data-i18n="obj2_title">تعلّم بالبناء</h3>
-          <p data-i18n="obj2_text">وصّل ESP32 حقيقيًا، وشاهد بياناته خلال ثوانٍ، وافهم كيف تتواصل الأجهزة مع الويب.</p>
-        </article>
-        <article class="card lp-card">
-          <span class="lp-icon" aria-hidden="true">◎</span>
-          <h3 data-i18n="obj3_title">مفتوح للمجتمع</h3>
-          <p data-i18n="obj3_text">الكود مفتوح المصدر. اقرأه وعدّله وطوّره مع غيرك من المهتمين.</p>
-        </article>
-      </div>
-    </section>
-
-    <section class="lp-section reveal" id="how">
-      <p class="lp-kicker" data-i18n="how_kicker">كيف يعمل</p>
-      <h2 class="lp-h2" data-i18n="how_title">ثلاث خطوات من اللوحة إلى المتصفح</h2>
-      <ol class="lp-steps">
-        <li class="card lp-step">
-          <span class="lp-step-num">1</span>
+    <section class="home-section reveal" id="how">
+      <p class="home-kicker" data-i18n="how_kicker">كيف يعمل</p>
+      <h2 class="home-h2" data-i18n="how_title">ثلاث خطوات من اللوحة إلى المتصفح</h2>
+      <ol class="home-steps">
+        <li class="home-card">
+          <span class="home-step-num">01</span>
           <h3 data-i18n="step1_title">أنشئ جهازًا</h3>
           <p data-i18n="step1_text">سمِّ الجهاز في لوحتك. ستحصل على مفتاح يُعرض مرة واحدة.</p>
         </li>
-        <li class="card lp-step">
-          <span class="lp-step-num">2</span>
+        <li class="home-card">
+          <span class="home-step-num">02</span>
           <h3 data-i18n="step2_title">وصّل لوحتك</h3>
           <p data-i18n="step2_text">ضع المفتاح في كود ESP32 وارفعه إلى اللوحة.</p>
         </li>
-        <li class="card lp-step">
-          <span class="lp-step-num">3</span>
+        <li class="home-card">
+          <span class="home-step-num">03</span>
           <h3 data-i18n="step3_title">ابنِ لوحتك</h3>
           <p data-i18n="step3_text">أضف عناصر للقراءات والتحكم، ثم خصّص الألوان وصورة الخلفية.</p>
         </li>
       </ol>
     </section>
 
-    <section class="lp-section reveal" id="features">
-      <p class="lp-kicker" data-i18n="features_kicker">العناصر</p>
-      <h2 class="lp-h2" data-i18n="features_title">اختر ما تحتاجه</h2>
-      <p class="lp-sub" data-i18n="features_lead">عناصر الإدخال ترسل أوامر إلى اللوحة، وعناصر الإخراج تعرض ما تقيسه اللوحة.</p>
-
-      <h3 class="lp-group" data-i18n="feat_input">إدخال: ترسل إلى اللوحة</h3>
-      <div class="lp-chips">
-        <span class="lp-chip" data-i18n="feat_switch">مفتاح تشغيل</span>
-        <span class="lp-chip" data-i18n="feat_button">زر</span>
-        <span class="lp-chip" data-i18n="feat_slider">منزلق</span>
-      </div>
-
-      <h3 class="lp-group" data-i18n="feat_output">إخراج: تعرض من اللوحة</h3>
-      <div class="lp-chips">
-        <span class="lp-chip" data-i18n="feat_value">قيمة</span>
-        <span class="lp-chip" data-i18n="feat_text">نص</span>
-        <span class="lp-chip" data-i18n="feat_gauge">مقياس</span>
-        <span class="lp-chip" data-i18n="feat_bar">شريط تقدّم</span>
-        <span class="lp-chip" data-i18n="feat_line">رسم مباشر</span>
-        <span class="lp-chip" data-i18n="feat_lamp">مصباح حالة</span>
+    <section class="home-section reveal" id="objectives">
+      <p class="home-kicker" data-i18n="objectives_kicker">لماذا IoTDeck</p>
+      <h2 class="home-h2" data-i18n="objectives_title">صُنعت لتساعد الطلاب على التعلّم بالبناء</h2>
+      <div class="home-grid">
+        <article class="home-card">
+          <h3 data-i18n="obj1_title">مجاني للطلاب</h3>
+          <p data-i18n="obj1_text">لا تكلفة لإنشاء الأجهزة أو اللوحات. تعلّم إنترنت الأشياء دون ميزانية لمنصة سحابية.</p>
+        </article>
+        <article class="home-card">
+          <h3 data-i18n="obj2_title">تعلّم بالبناء</h3>
+          <p data-i18n="obj2_text">وصّل ESP32 حقيقيًا، وشاهد بياناته خلال ثوانٍ، وافهم كيف تتواصل الأجهزة مع الويب.</p>
+        </article>
+        <article class="home-card">
+          <h3 data-i18n="obj3_title">مفتوح للمجتمع</h3>
+          <p data-i18n="obj3_text">الكود مفتوح المصدر. اقرأه وعدّله وطوّره مع غيرك من المهتمين.</p>
+        </article>
       </div>
     </section>
 
-    <section class="lp-section lp-split reveal">
-      <div>
-        <p class="lp-kicker" data-i18n="custom_kicker">خصّصها</p>
-        <h2 class="lp-h2" data-i18n="custom_title">لكل جهاز شكله الخاص</h2>
-        <p class="lp-sub" data-i18n="custom_text">اختر لونًا أساسيًا، أو خلفية جاهزة، أو ارفع صورتك الخاصة.</p>
+    <section class="home-section reveal" id="features">
+      <p class="home-kicker" data-i18n="features_kicker">العناصر</p>
+      <h2 class="home-h2" data-i18n="features_title">اختر ما تحتاجه</h2>
+      <p class="home-sub" data-i18n="features_lead">عناصر الإدخال ترسل أوامر إلى اللوحة، وعناصر الإخراج تعرض ما تقيسه اللوحة.</p>
+
+      <h3 class="home-group" data-i18n="feat_input">إدخال: ترسل إلى اللوحة</h3>
+      <div class="home-chips">
+        <span class="home-chip" data-i18n="feat_switch">مفتاح تشغيل</span>
+        <span class="home-chip" data-i18n="feat_button">زر</span>
+        <span class="home-chip" data-i18n="feat_slider">منزلق</span>
       </div>
-      <div class="lp-swatches" aria-hidden="true">
+
+      <h3 class="home-group" data-i18n="feat_output">إخراج: تعرض من اللوحة</h3>
+      <div class="home-chips">
+        <span class="home-chip" data-i18n="feat_value">قيمة</span>
+        <span class="home-chip" data-i18n="feat_text">نص</span>
+        <span class="home-chip" data-i18n="feat_gauge">مقياس</span>
+        <span class="home-chip" data-i18n="feat_bar">شريط تقدّم</span>
+        <span class="home-chip" data-i18n="feat_line">رسم مباشر</span>
+        <span class="home-chip" data-i18n="feat_lamp">مصباح حالة</span>
+      </div>
+    </section>
+
+    <section class="home-section home-split reveal">
+      <div>
+        <p class="home-kicker" data-i18n="custom_kicker">خصّصها</p>
+        <h2 class="home-h2" data-i18n="custom_title">لكل جهاز شكله الخاص</h2>
+        <p class="home-sub" data-i18n="custom_text">اختر لونًا أساسيًا، أو خلفية جاهزة، أو ارفع صورتك الخاصة.</p>
+      </div>
+      <div class="home-swatches" aria-hidden="true">
         <span style="--c:#7c8cff"></span><span style="--c:#3ee3b5"></span><span style="--c:#ffb86b"></span><span style="--c:#ff6b8a"></span><span style="--c:#5ec8ff"></span><span style="--c:#c792ea"></span>
       </div>
     </section>
 
-    <section class="lp-section lp-open reveal" id="open">
-      <p class="lp-kicker" data-i18n="open_kicker">مجاني ومفتوح المصدر</p>
-      <h2 class="lp-h2" data-i18n="open_title">يستطيع أي شخص استخدامه، ويستطيع أي شخص تطويره.</h2>
-      <p class="lp-sub" data-i18n="open_text">IoTDeck مجاني للاستخدام، والكود منشور على GitHub. أبلغ عن خلل، أو اقترح عنصرًا، أو أرسل تعديلًا.</p>
-      <a class="btn btn-ghost lp-btn-lg" href="https://github.com/iotdeck/iotdeck-site" target="_blank" rel="noopener" data-i18n="open_github">اعرض الكود على GitHub</a>
+    <section class="home-section home-open reveal" id="open">
+      <p class="home-kicker" data-i18n="open_kicker">مجاني ومفتوح المصدر</p>
+      <h2 class="home-h2" data-i18n="open_title">يستطيع أي شخص استخدامه، ويستطيع أي شخص تطويره.</h2>
+      <p class="home-sub" data-i18n="open_text">IoTDeck مجاني للاستخدام، والكود منشور على GitHub. أبلغ عن خلل، أو اقترح عنصرًا، أو أرسل تعديلًا.</p>
+      <a class="btn btn-ghost home-btn-lg" href="https://github.com/iotdeck/iotdeck-site" target="_blank" rel="noopener" data-i18n="open_github">اعرض الكود على GitHub</a>
     </section>
 
-    <section class="lp-final reveal">
-      <h2 class="lp-h2" data-i18n="final_title">هل أنت مستعد لرؤية أول قراءة؟</h2>
-      <a class="btn btn-primary lp-btn-lg" href="/signin" data-i18n="final_cta">أنشئ حسابًا مجانيًا</a>
+    <section class="home-final reveal">
+      <h2 class="home-h2" data-i18n="final_title">هل أنت مستعد لرؤية أول قراءة؟</h2>
+      <a class="btn btn-primary home-btn-lg" href="/signin" data-i18n="final_cta">أنشئ حسابًا مجانيًا</a>
     </section>
   </main>
 
-  <footer class="lp-footer">
-    <span data-i18n="footer_text">IoTDeck — لوحات IoT مجانية لطلاب الأعمال اليدوية.</span>
-    <a href="https://github.com/iotdeck/iotdeck-site" target="_blank" rel="noopener" data-i18n="footer_github">GitHub</a>
+  <footer class="home-footer">
+    <div class="bala">
+      <img class="bala-logo" src="/bala-code-logo.png" width="72" height="72" alt="Bala Code logo" loading="lazy">
+      <div>
+        <p class="bala-title" data-i18n="footer_bala_made">صُنع بمساعدة Bala Code</p>
+        <p class="bala-text" data-i18n="footer_bala_text">تشارك IoTDeck قناة بلا كود، وهي قناة عربية تعلّم المبتدئين بناء خدمات مفيدة بأدوات الذكاء الاصطناعي، مجانًا.</p>
+        <a class="bala-link" href="https://balacode.org" target="_blank" rel="noopener" data-i18n="footer_bala_link">balacode.org</a>
+      </div>
+    </div>
+    <div class="footer-links">
+      <p data-i18n="footer_text">IoTDeck — لوحات IoT مجانية لطلاب الأعمال اليدوية.</p>
+      <a href="https://github.com/iotdeck/iotdeck-site" target="_blank" rel="noopener" data-i18n="footer_site">كود الموقع على GitHub</a>
+      <a href="https://github.com/iotdeck/IoTDeck" target="_blank" rel="noopener" data-i18n="footer_lib">مكتبة ESP32 على GitHub</a>
+    </div>
   </footer>
+
+  <div class="home-tip" id="tip" role="tooltip"></div>
 
   <script src="/i18n.js" defer></script>
   <script src="/landing.js" defer></script>

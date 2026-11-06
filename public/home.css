@@ -1,0 +1,223 @@
+/* Homepage: dark, calm motion, one glowing board. Shared tokens live in styles.css. */
+
+.home-body { background: var(--bg); overflow-x: hidden; min-height: 100vh; }
+
+/* Faint grid that fades out from the cursor, and a soft glow that follows it */
+.home-bg {
+  position: fixed; inset: 0; z-index: -2; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(124, 140, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124, 140, 255, 0.05) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(circle at var(--gx, 70%) var(--gy, 30%), #000 0%, rgba(0, 0, 0, 0.35) 28%, transparent 60%);
+          mask-image: radial-gradient(circle at var(--gx, 70%) var(--gy, 30%), #000 0%, rgba(0, 0, 0, 0.35) 28%, transparent 60%);
+}
+.home-glow {
+  position: fixed; left: 0; top: 0; width: 620px; height: 620px; z-index: -1; pointer-events: none;
+  margin: -310px 0 0 -310px; border-radius: 50%;
+  transform: translate3d(var(--px, 70vw), var(--py, 30vh), 0);
+  background: radial-gradient(circle, rgba(124, 140, 255, 0.16), rgba(62, 227, 181, 0.05) 45%, transparent 68%);
+}
+
+/* Navigation */
+.home-nav {
+  position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 18px;
+  padding: 14px 5vw; background: rgba(6, 8, 15, 0.55); backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid var(--border);
+}
+.home-links { display: flex; gap: 4px; }
+.home-links a { color: var(--text-dim); padding: 8px 12px; border-radius: 10px; font-size: 14px; transition: color .3s, background .3s; }
+.home-links a:hover { color: var(--text); background: var(--surface-hover); }
+.home-actions { margin-inline-start: auto; display: flex; gap: 8px; align-items: center; }
+
+/* Hero */
+.home-hero {
+  display: grid; grid-template-columns: 1fr 1.1fr; gap: 56px; align-items: center;
+  max-width: 1240px; margin: 0 auto; padding: 64px 5vw 48px; min-height: 82vh;
+}
+.home-badge {
+  display: inline-block; font-size: 13px; color: var(--accent-2);
+  padding: 6px 12px; border: 1px solid rgba(62, 227, 181, 0.3); border-radius: 999px; background: rgba(62, 227, 181, 0.06);
+}
+.home-title { font-size: clamp(36px, 5.2vw, 62px); line-height: 1.06; margin-top: 22px; }
+.home-lead { color: var(--text-dim); font-size: 18px; margin-top: 20px; max-width: 34em; }
+.home-cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 30px; }
+.home-btn-lg { padding: 14px 24px; font-size: 16px; }
+.home-hint { color: var(--text-faint); font-size: 13px; margin-top: 26px; }
+
+/* The hub: board on the left, dashboard tiles on the right, signal traces between them */
+.home-hub { position: relative; width: 100%; aspect-ratio: 4 / 3; }
+.home-traces { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.trace-base { fill: none; stroke: rgba(154, 163, 184, 0.16); stroke-width: 1.2; transition: stroke .5s; }
+.trace-flow {
+  fill: none; stroke: var(--accent); stroke-width: 1.4; stroke-linecap: round;
+  stroke-dasharray: 2 12; animation: flow 1.8s linear infinite;
+  opacity: .55; transition: opacity .5s ease, stroke-width .5s ease;
+}
+.trace-dot { fill: var(--accent-2); filter: drop-shadow(0 0 5px var(--accent-2)); }
+@keyframes flow { to { stroke-dashoffset: -28; } }
+
+/* Focus: hovering a tile or pin lights its trace and dims the others */
+.home-hub[data-focus] .trace-flow { opacity: .15; }
+.home-hub[data-focus="temp"] .trace-temp .trace-flow,
+.home-hub[data-focus="humidity"] .trace-humidity .trace-flow,
+.home-hub[data-focus="switch"] .trace-switch .trace-flow { opacity: 1; stroke-width: 2.2; }
+.home-hub[data-focus="temp"] .trace-temp .trace-dot,
+.home-hub[data-focus="humidity"] .trace-humidity .trace-dot,
+.home-hub[data-focus="switch"] .trace-switch .trace-dot { r: 4.5; }
+
+/* Board */
+.home-board {
+  position: absolute; left: 9.375%; top: 6.25%; width: 26.5625%;
+  perspective: 900px;
+}
+.board-inner {
+  transform-style: preserve-3d;
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  will-change: transform;
+}
+.board-svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 28px 36px rgba(0, 0, 0, 0.55)); }
+
+.chip { cursor: pointer; }
+.chip-glow { fill: none; stroke: var(--accent); stroke-width: 1.5; opacity: 0; transition: opacity .6s ease, filter .6s ease; }
+.chip:hover .chip-glow, .chip:focus .chip-glow { opacity: .9; filter: drop-shadow(0 0 8px var(--accent)); }
+.chip-body { transition: stroke .5s ease; }
+.chip:hover .chip-body { stroke: rgba(124, 140, 255, 0.7); }
+
+.pin rect { fill: #d7c38a; transition: fill .35s ease, filter .35s ease; cursor: pointer; }
+.pin:hover rect, .pin:focus rect { fill: var(--accent-2); filter: drop-shadow(0 0 5px var(--accent-2)); }
+.pin-temp rect, .pin-humidity rect, .pin-led rect { fill: var(--accent); }
+.home-hub[data-focus="temp"] .pin-temp rect,
+.home-hub[data-focus="humidity"] .pin-humidity rect,
+.home-hub[data-focus="switch"] .pin-led rect { fill: var(--accent-2); filter: drop-shadow(0 0 5px var(--accent-2)); }
+
+.led { cursor: pointer; }
+.led-core { fill: #1b2233; stroke: rgba(255, 255, 255, 0.2); transition: fill .4s ease, filter .4s ease; }
+.led-halo { fill: none; stroke: none; transition: fill .6s ease; }
+.home-hub[data-led="on"] .led-core { fill: var(--accent-2); filter: drop-shadow(0 0 8px var(--accent-2)); }
+.home-hub[data-led="on"] .led-halo { fill: rgba(62, 227, 181, 0.18); }
+
+/* Tooltip for pins, chip and LED */
+.home-tip {
+  position: fixed; z-index: 30; pointer-events: none; opacity: 0; transform: translate(-50%, calc(-100% - 12px));
+  background: rgba(11, 15, 28, 0.94); border: 1px solid var(--border-strong); border-radius: 10px;
+  padding: 8px 12px; font-size: 13px; white-space: nowrap; box-shadow: var(--shadow);
+  transition: opacity .25s ease, transform .35s cubic-bezier(.2, .7, .2, 1);
+}
+.home-tip.show { opacity: 1; }
+.home-tip b { font-family: var(--mono); font-weight: 600; color: var(--accent-2); margin-inline-end: 6px; }
+
+/* Dashboard tiles */
+.hub-tile {
+  position: absolute; left: 59.375%; width: 31.25%; text-align: start; font: inherit; color: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012));
+  border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: var(--shadow);
+  transition: transform .6s cubic-bezier(.2, .7, .2, 1), border-color .4s ease, background .4s ease;
+  cursor: default;
+}
+.hub-tile:hover, .hub-tile:focus-visible { transform: translateX(-8px); border-color: rgba(124, 140, 255, 0.5); background: var(--surface-hover); outline: none; }
+.tile-temp { top: 10.5%; }
+.tile-humidity { top: 39%; }
+.tile-switch { top: 70%; cursor: pointer; }
+
+.home-label { display: block; font-size: 12px; color: var(--text-dim); letter-spacing: .02em; }
+.home-big { display: flex; align-items: baseline; gap: 4px; font-family: var(--mono); font-size: 30px; font-weight: 600; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.home-big small { font-size: 14px; color: var(--text-dim); font-weight: 500; }
+.home-big-sm { font-size: 24px; }
+.home-spark { display: block; width: 100%; height: 22px; margin-top: 6px; }
+.home-spark path { fill: none; stroke: var(--accent-2); stroke-width: 2; stroke-linejoin: round; vector-effect: non-scaling-stroke; transition: d .6s ease; }
+.tile-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; }
+.home-gauge { width: 86px; height: auto; }
+.gauge-track { fill: none; stroke: rgba(255, 255, 255, 0.08); stroke-width: 9; stroke-linecap: round; }
+.gauge-fill { fill: none; stroke: var(--accent); stroke-width: 9; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 1s cubic-bezier(.2, .7, .2, 1); }
+
+.home-toggle { position: relative; width: 46px; height: 26px; border-radius: 999px; background: rgba(255, 255, 255, 0.1); transition: background .4s ease; flex: none; }
+.home-knob { position: absolute; top: 3px; inset-inline-start: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--text); transition: transform .5s cubic-bezier(.2, .7, .2, 1), background .4s ease; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4); }
+.tile-switch[aria-pressed="true"] .home-toggle { background: rgba(62, 227, 181, 0.35); }
+.tile-switch[aria-pressed="true"] .home-knob { transform: translateX(-20px); background: var(--accent-2); }
+.home-state { font-family: var(--mono); font-size: 13px; color: var(--text-dim); }
+.tile-switch[aria-pressed="true"] .home-state { color: var(--accent-2); }
+
+/* Sections */
+.home-section { max-width: 1120px; margin: 0 auto; padding: 96px 5vw; }
+.home-kicker { font-size: 13px; letter-spacing: .08em; color: var(--accent); text-transform: uppercase; }
+.home-h2 { font-size: clamp(26px, 3.4vw, 40px); line-height: 1.15; margin-top: 12px; max-width: 22em; }
+.home-sub { color: var(--text-dim); font-size: 17px; margin-top: 14px; max-width: 40em; }
+.home-group { font-size: 14px; color: var(--text-dim); font-weight: 600; margin: 34px 0 12px; }
+
+.home-grid, .home-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; list-style: none; padding: 0; margin: 40px 0 0; }
+.home-card {
+  padding: 26px; border-radius: 18px; border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.012));
+  transition: transform .7s cubic-bezier(.2, .7, .2, 1), border-color .5s ease;
+}
+.home-card:hover { transform: translateY(-5px); border-color: rgba(124, 140, 255, 0.4); }
+.home-card h3 { font-size: 18px; }
+.home-card p { color: var(--text-dim); margin-top: 10px; font-size: 15px; }
+.home-step-num { font-family: var(--mono); font-size: 13px; color: var(--accent-2); }
+
+.home-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.home-chip {
+  padding: 9px 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface);
+  font-size: 14px; transition: border-color .4s ease, color .4s ease, transform .5s cubic-bezier(.2, .7, .2, 1);
+}
+.home-chip:hover { border-color: var(--accent); color: var(--accent-2); transform: translateY(-2px); }
+
+.home-split { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+.home-swatches { display: flex; gap: 14px; flex-wrap: wrap; justify-content: flex-start; }
+.home-swatches span {
+  width: 52px; height: 52px; border-radius: 50%; background: var(--c);
+  box-shadow: 0 0 24px -4px var(--c); transition: transform .6s cubic-bezier(.2, .7, .2, 1);
+}
+.home-swatches span:hover { transform: scale(1.14); }
+
+.home-open { text-align: start; }
+.home-open .home-btn-lg { margin-top: 26px; }
+.home-final { text-align: center; padding: 96px 5vw 120px; }
+.home-final .home-h2 { margin: 0 auto; }
+.home-final .home-btn-lg { margin-top: 30px; }
+
+/* Footer */
+.home-footer {
+  display: flex; flex-wrap: wrap; gap: 32px; justify-content: space-between; align-items: center;
+  padding: 44px 5vw 36px; border-top: 1px solid var(--border); color: var(--text-dim); font-size: 14px;
+}
+.bala { display: flex; gap: 18px; align-items: center; max-width: 560px; }
+.bala-logo { width: 72px; height: 72px; border-radius: 18px; flex: none; box-shadow: 0 10px 30px -10px var(--accent-glow); }
+.bala-title { color: var(--text); font-weight: 650; font-size: 16px; }
+.bala-text { margin-top: 6px; line-height: 1.6; }
+.bala-link { display: inline-block; margin-top: 8px; font-family: var(--mono); font-size: 13px; }
+.footer-links { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.footer-links a { color: var(--text-dim); transition: color .3s ease; }
+.footer-links a:hover, .bala-link:hover { color: var(--accent-2); }
+.footer-links p { margin-bottom: 4px; }
+
+/* Scroll reveal: content only hides while the script runs */
+.home-js .reveal { opacity: 0; transform: translateY(26px); transition: opacity 1.1s cubic-bezier(.2, .7, .2, 1), transform 1.1s cubic-bezier(.2, .7, .2, 1); }
+.home-js .reveal.in { opacity: 1; transform: none; }
+
+/* Phones: stack everything and drop the traces */
+@media (max-width: 860px) {
+  .home-hero { grid-template-columns: 1fr; gap: 36px; min-height: 0; padding-top: 40px; }
+  .home-hub { aspect-ratio: auto; display: flex; flex-direction: column; gap: 14px; align-items: stretch; }
+  .home-traces { display: none; }
+  .home-board { position: relative; left: auto; top: auto; width: 200px; margin: 0 auto 6px; }
+  .hub-tile { position: relative; left: auto; top: auto; width: 100%; height: auto; }
+  .hub-tile:hover, .hub-tile:focus-visible { transform: translateY(-3px); }
+  .home-tip { display: none; }
+  .home-grid, .home-steps, .home-split { grid-template-columns: 1fr; }
+  .home-hide-sm { display: none; }
+  .home-links { display: none; }
+  .home-section { padding: 70px 5vw; }
+}
+@media (max-width: 480px) {
+  .home-cta .btn, .home-btn-lg { width: 100%; text-align: center; justify-content: center; }
+}
+
+/* Reduced motion: no loops, no tilt, content shown at once */
+@media (prefers-reduced-motion: reduce) {
+  .home-body *, .home-body *::before, .home-body *::after { animation: none !important; transition: none !important; }
+  .home-js .reveal { opacity: 1; transform: none; }
+  .board-inner { transform: none !important; }
+}
