@@ -2,10 +2,18 @@
 <html lang="ar" dir="rtl" data-page="dashboard">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>IoTDeck — لوحة التحكم</title>
+  <meta name="theme-color" content="#06080f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="IoTDeck">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icon-192.png">
   <link rel="icon" href="/logo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/studio.css">
 </head>
 <body>
   <div class="app">
@@ -26,24 +34,31 @@
           <span class="avatar" id="avatar" aria-hidden="true">·</span>
           <span class="who" id="user-email"></span>
         </div>
-        <button class="btn btn-ghost btn-block" id="lang-toggle" type="button">English</button>
+        <button class="btn btn-ghost btn-block js-lang" id="lang-toggle" type="button">English</button>
         <button class="btn btn-ghost btn-block" id="logout" data-i18n="sign_out">تسجيل الخروج</button>
       </div>
     </aside>
 
-    <main class="main">
-      <header class="topbar">
+    <main class="main" id="main" data-view="dash">
+      <header class="appbar" aria-label="IoTDeck">
+        <div class="brand"><span class="brand-mark" aria-hidden="true"></span>IoTDeck</div>
+        <span class="appbar-state" id="appbar-state"></span>
+      </header>
+      <nav class="chips" id="chips" aria-label="Your devices"></nav>
+
+      <header class="topbar v-dash">
         <div>
           <h1 id="greeting" data-i18n="dashboard">لوحة التحكم</h1>
           <p class="sub" id="subtitle" data-i18n="loading">جارٍ تحميل أجهزتك…</p>
         </div>
         <div class="actions">
           <button class="btn" id="add-device-2" data-i18n="add_device_btn">إضافة جهاز</button>
+          <button class="btn" id="edit-layout" type="button" aria-pressed="false" data-i18n="edit_layout">تعديل التخطيط</button>
           <button class="btn btn-primary" id="add-widget" data-i18n="add_widget_btn">إضافة عنصر</button>
         </div>
       </header>
 
-      <section class="stats" aria-label="Summary">
+      <section class="stats v-me" aria-label="Summary">
         <div class="card stat"><div class="label" data-i18n="stat_devices">الأجهزة</div><div class="value" id="stat-devices">0</div></div>
         <div class="card stat"><div class="label" data-i18n="stat_online">متصلة الآن</div><div class="value" id="stat-online">0</div></div>
         <div class="card stat"><div class="label" data-i18n="stat_widgets">العناصر</div><div class="value" id="stat-widgets">0</div></div>
@@ -54,13 +69,18 @@
         </div>
       </section>
 
-      <div class="notice hidden" id="unknown-notice" role="status"></div>
+      <div class="notice hidden v-dash" id="unknown-notice" role="status"></div>
 
-      <div class="actions" id="filter-row" style="margin-bottom:16px;"></div>
+      <div class="actions v-dash" id="filter-row" style="margin-bottom:16px;"></div>
 
-      <section class="grid" id="grid" aria-live="polite"></section>
+      <div class="studio-bar v-dash hidden" id="studio-bar" role="status">
+        <span class="studio-hint" data-i18n="studio_hint">اسحب البطاقات لإعادة ترتيبها، واسحب الزاوية لتغيير الحجم.</span>
+        <button class="btn btn-primary" id="studio-done" type="button" data-i18n="studio_done">تم</button>
+      </div>
 
-      <section class="card activity-card" aria-labelledby="activity-title">
+      <section class="grid canvas v-dash" id="grid" aria-live="polite"></section>
+
+      <section class="card activity-card v-activity" aria-labelledby="activity-title">
         <div class="admin-head">
           <h2 id="activity-title" data-i18n="activity_title">النشاط</h2>
           <span class="lead" id="activity-note"></span>
@@ -68,8 +88,24 @@
         </div>
         <ul class="activity-list" id="activity-list"></ul>
       </section>
+
+      <section class="me-view v-me" aria-label="Account">
+        <div class="card me-card">
+          <div class="user-chip"><span class="avatar" id="avatar-m" aria-hidden="true">·</span><span class="who" id="user-email-m"></span></div>
+          <button class="btn btn-block js-lang" type="button">English</button>
+          <button class="btn btn-block" id="logout-m" type="button" data-i18n="sign_out">تسجيل الخروج</button>
+        </div>
+      </section>
     </main>
   </div>
+
+  <nav class="tabbar" id="tabbar" aria-label="Main">
+    <button type="button" data-view="dash" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4v-5H9v5H5a1 1 0 0 1-1-1z"/></svg><span data-i18n="tab_home">الرئيسية</span></button>
+    <button type="button" data-view="activity"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><span data-i18n="tab_activity">النشاط</span></button>
+    <button type="button" class="tab-add" id="tab-add" aria-label="Add"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+    <button type="button" id="tab-edit" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z M13.5 6.5l4 4"/></svg><span data-i18n="tab_edit">تعديل</span></button>
+    <button type="button" data-view="me"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span data-i18n="tab_me">حسابي</span></button>
+  </nav>
 
   <!-- Add device modal -->
   <div class="modal-backdrop" id="device-modal" role="dialog" aria-modal="true" aria-labelledby="device-title">
@@ -166,6 +202,48 @@
               <input class="input" id="widget-max" type="number" value="100" data-i18n-aria="max_aria" aria-label="الحد الأعلى">
             </div>
           </div>
+        </div>
+        <div class="field" id="label-section" hidden>
+          <label for="widget-sub" data-i18n="label_sub">نص ثانوي (اختياري)</label>
+          <input class="input" id="widget-sub" maxlength="80">
+        </div>
+        <div class="field" id="image-section" hidden>
+          <span class="field-label" data-i18n="image_pick_title">الصورة</span>
+          <div class="img-slots">
+            <div class="img-slot">
+              <div class="img-preview" id="img-prev-a"></div>
+              <label class="btn" for="img-file-a" data-i18n="image_choose">اختيار صورة</label>
+              <input type="file" id="img-file-a" accept="image/jpeg,image/png,image/webp" hidden>
+              <button type="button" class="btn btn-ghost" id="img-rm-a" data-i18n="image_remove">إزالة</button>
+            </div>
+            <div class="img-slot">
+              <div class="img-preview" id="img-prev-b"></div>
+              <label class="btn" for="img-file-b" data-i18n="image_choose_b">صورة عند التشغيل</label>
+              <input type="file" id="img-file-b" accept="image/jpeg,image/png,image/webp" hidden>
+              <button type="button" class="btn btn-ghost" id="img-rm-b" data-i18n="image_remove">إزالة</button>
+            </div>
+          </div>
+          <div class="row-2">
+            <div class="field">
+              <label for="widget-fit" data-i18n="image_fit">عرض الصورة</label>
+              <select class="input" id="widget-fit"><option value="cover" data-i18n="fit_cover">ملء البطاقة</option><option value="contain" data-i18n="fit_contain">كاملة بدون قص</option></select>
+            </div>
+            <div class="field">
+              <label for="widget-statefield" data-i18n="image_statefield">حقل يبدّل الصورة (اختياري)</label>
+              <input class="input" id="widget-statefield" list="field-options" maxlength="32" placeholder="LED">
+            </div>
+          </div>
+          <p class="hint" data-i18n="image_hint">تُصغَّر الصورة تلقائيًا. إذا اخترت حقلًا، تظهر الصورة الثانية عندما يكون الحقل مفعّلًا.</p>
+        </div>
+        <div class="field" id="recv-field" hidden>
+          <button type="button" class="btn" id="recv-btn" aria-pressed="true"></button>
+          <p class="hint" data-i18n="receiving_hint"></p>
+        </div>
+        <div class="field" id="look-section">
+          <span class="field-label" data-i18n="look_icon">الأيقونة</span>
+          <div class="icon-grid" id="icon-grid" role="radiogroup"></div>
+          <span class="field-label" data-i18n="look_color">لون البطاقة</span>
+          <div class="swatches" id="accent-swatches" role="radiogroup"></div>
         </div>
         <p class="error" id="widget-error" role="alert"></p>
         <div class="modal-actions">

@@ -63,6 +63,34 @@
       waiting_first: 'في انتظار أول قراءة',
       updated_ago: 'آخر تحديث {t}',
       live: 'متصل الآن',
+      edit_layout: 'تعديل التخطيط',
+      studio_hint: 'اسحب البطاقات لإعادة ترتيبها، واسحب الزاوية لتغيير الحجم.',
+      studio_done: 'تم',
+      tab_home: 'الرئيسية',
+      tab_activity: 'النشاط',
+      tab_edit: 'تعديل',
+      tab_me: 'حسابي',
+      online_of: '{online} من {total} متصل',
+      resize_tile: 'تغيير الحجم',
+      connected_since_placeholder: '',
+      group_decor: 'تزيين (صور وعناوين)',
+      type_image: 'صورة',
+      type_label: 'عنوان',
+      label_sub: 'نص ثانوي (اختياري)',
+      image_empty: 'أضف صورة',
+      image_pick_title: 'الصورة',
+      image_choose: 'اختيار صورة',
+      image_choose_b: 'صورة عند التشغيل',
+      image_remove: 'إزالة',
+      image_fit: 'عرض الصورة',
+      fit_cover: 'ملء البطاقة',
+      fit_contain: 'كاملة بدون قص',
+      image_statefield: 'حقل يبدّل الصورة (اختياري)',
+      image_hint: 'تُصغَّر الصورة تلقائيًا. إذا اخترت حقلًا، تظهر الصورة الثانية عندما يكون الحقل مفعّلًا.',
+      image_too_big: 'الصورة كبيرة جدًا، جرّب صورة أخرى.',
+      look_icon: 'الأيقونة',
+      look_color: 'لون البطاقة',
+
       connected_since: 'متصل منذ {t}',
       last_seen: 'آخر ظهور {t}',
       viewing_now: 'قيد العرض',
@@ -329,6 +357,33 @@ type_bar: 'شريط تقدّم',      type_indicator: 'مؤشر حالة',
       waiting_first: 'Waiting for first reading',
       updated_ago: 'Updated {t}',
       live: 'Live',
+      edit_layout: 'Edit layout',
+      studio_hint: 'Drag tiles to rearrange them. Drag the corner to resize.',
+      studio_done: 'Done',
+      tab_home: 'Home',
+      tab_activity: 'Activity',
+      tab_edit: 'Edit',
+      tab_me: 'Me',
+      online_of: '{online} of {total} online',
+      resize_tile: 'Resize',
+      group_decor: 'Decoration (photos and headings)',
+      type_image: 'Photo',
+      type_label: 'Heading',
+      label_sub: 'Subtitle (optional)',
+      image_empty: 'Add a photo',
+      image_pick_title: 'Photo',
+      image_choose: 'Choose photo',
+      image_choose_b: 'Photo when on',
+      image_remove: 'Remove',
+      image_fit: 'Photo fit',
+      fit_cover: 'Fill the tile',
+      fit_contain: 'Whole photo, no crop',
+      image_statefield: 'Field that switches the photo (optional)',
+      image_hint: 'Photos are shrunk automatically. If you pick a field, the second photo shows while it is on.',
+      image_too_big: 'That photo is too large. Try another.',
+      look_icon: 'Icon',
+      look_color: 'Tile colour',
+
       connected_since: 'Connected since {t}',
       last_seen: 'last seen {t}',
       viewing_now: 'Viewing now',
@@ -560,7 +615,7 @@ type_bar: 'Progress bar',      type_indicator: 'Status lamp',
     document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => { el.setAttribute('placeholder', t(el.dataset.i18nPlaceholder)); });
     document.querySelectorAll('[data-i18n-aria]').forEach((el) => { el.setAttribute('aria-label', t(el.dataset.i18nAria)); });
     document.querySelectorAll('[data-i18n-title]').forEach((el) => { el.setAttribute('title', t(el.dataset.i18nTitle)); });
-    document.querySelectorAll('#lang-toggle').forEach((el) => { el.textContent = t('lang_toggle'); });
+    document.querySelectorAll('#lang-toggle, .js-lang').forEach((el) => { el.textContent = t('lang_toggle'); });
   }
 
   function setLang(lang) {
@@ -571,7 +626,7 @@ type_bar: 'Progress bar',      type_indicator: 'Status lamp',
   }
 
   document.addEventListener('click', (event) => {
-    if (event.target.closest && event.target.closest('#lang-toggle')) {
+    if (event.target.closest && event.target.closest('#lang-toggle, .js-lang')) {
       setLang(current === 'ar' ? 'en' : 'ar');
     }
   });

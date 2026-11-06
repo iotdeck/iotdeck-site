@@ -51,6 +51,8 @@
     pending: new Map(), // widget id -> { value, until } for switches you just set
     filter: null, // deviceId or null
     focusPage: false, // true when this page is one device's own page (?device=)
+    studio: false, // layout edit mode (drag, resize)
+    view: 'dash', // phone tabs: dash | activity | me
   };
 
   // ---------- API ----------
@@ -166,7 +168,45 @@
     $('greeting').textContent = t('hello', { name: first || t('there') });
   }
 
+  // Phone: the devices as round avatars you swipe through
+  function renderChips() {
+    const row = $('chips');
+    if (!row) return;
+    row.replaceChildren();
+    const devices = [...state.devices.values()];
+    row.append(
+      h(
+        'button',
+        { class: `chip${state.filter ? '' : ' selected'}`, type: 'button', onclick: () => switchDevice(null) },
+        h('span', { class: 'chip-av' }, s('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' }, s('path', { d: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z' }))),
+        h('span', { class: 'chip-name', text: t('back_all') }),
+      ),
+    );
+    for (const device of devices) {
+      const online = isOnline(device);
+      row.append(
+        h(
+          'button',
+          { class: `chip${online ? ' online' : ''}${state.filter === device.id ? ' selected' : ''}`, type: 'button', onclick: () => switchDevice(device.id) },
+          h('span', { class: 'chip-av' }, (device.name || '?').trim().slice(0, 1).toUpperCase(), h('span', { class: 'chip-dot' })),
+          h('span', { class: 'chip-name', text: device.name }),
+        ),
+      );
+    }
+    row.append(
+      h(
+        'button',
+        { class: 'chip chip-add', type: 'button', onclick: () => { resetDeviceModal(); openModal('device-modal'); } },
+        h('span', { class: 'chip-av' }, s('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' }, s('path', { d: 'M12 5v14M5 12h14' }))),
+        h('span', { class: 'chip-name', text: t('new_device') }),
+      ),
+    );
+    const sel = row.querySelector('.chip.selected');
+    if (sel && sel.scrollIntoView) sel.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
+
   function renderSidebar() {
+    renderChips();
     const list = $('device-list');
     list.replaceChildren();
     const devices = [...state.devices.values()];
@@ -232,6 +272,11 @@
     $('stat-devices').textContent = String(devices.length);
     $('stat-online').textContent = String(online);
     $('stat-widgets').textContent = String(state.widgets.length);
+    const bar = $('appbar-state');
+    if (bar) {
+      bar.textContent = devices.length ? t('online_of', { online, total: devices.length }) : '';
+      bar.classList.toggle('live', online > 0);
+    }
     $('subtitle').textContent =
       devices.length === 0
         ? t('connect_hint')
@@ -243,7 +288,7 @@
     row.replaceChildren();
     if (state.focusPage) {
       row.append(
-        h('a', { class: 'btn btn-ghost', href: '/dashboard?all=1', text: t('back_all') }),
+        h('a', { class: 'btn btn-ghost', href: '/dashboard?all=1', text: t('back_all'), onclick: (e) => { e.preventDefault(); switchDevice(null); } }),
         h('button', { class: 'btn btn-ghost', type: 'button', onclick: openThemeModal, text: t('customize') }),
         h('button', { class: 'btn btn-ghost', type: 'button', onclick: () => openSetup(state.filter), text: t('device_setup') }),
       );
@@ -275,8 +320,36 @@
   let savedTheme = null;
   let draftTheme = null;
 
-  function openDevicePage(deviceId) {
-    location.href = `/dashboard?device=${encodeURIComponent(deviceId)}`;
+  // Switch device without reloading the page, like an app
+  async function openDevicePage(deviceId) {
+    switchDevice(deviceId);
+  }
+
+  async function switchDevice(deviceId) {
+    if (state.studio) setStudio(false);
+    state.filter = deviceId || null;
+    state.focusPage = Boolean(deviceId);
+    try {
+      history.replaceState(null, '', deviceId ? `/dashboard?device=${encodeURIComponent(deviceId)}` : '/dashboard?all=1');
+    } catch {}
+    setView('dash');
+    if (deviceId) await loadTheme();
+    else {
+      savedTheme = null;
+      applyTheme({ accent: THEME_COLORS[0], background: 'night' });
+    }
+    renderAll();
+    window.scrollTo({ top: 0 });
+  }
+
+  function setView(view) {
+    state.view = view;
+    $('main').dataset.view = view;
+    document.querySelectorAll('#tabbar [data-view]').forEach((b) => {
+      if (b.dataset.view === view) b.setAttribute('aria-current', 'page');
+      else b.removeAttribute('aria-current');
+    });
+    if (view !== 'dash' && state.studio) setStudio(false);
   }
 
   function applyTheme(theme) {
@@ -397,12 +470,101 @@
 
   // ---------- Widgets ----------
 
+  // ---------- Tiles: the canvas, sizes, icons ----------
+
+  // Icons are small line drawings (24x24). A tile keeps the name of the one you pick.
+  const ICON_PATHS = {
+    bulb: 'M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z',
+    power: 'M12 3v8M6.4 7.2a7 7 0 1 0 11.2 0',
+    fan: 'M12 12m-1.5 0a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0M12 10.5C12 6 14 4 16 4s2.5 3 0 5.5c-1 1-2.5 1.5-4 1M13.5 12c4.500 0 6.500 2 6.500 4s-3 2.500-5.500 0c-1-1-1.500-2.500-1-4M12 13.500c0 4.500-2 6.500-4 6.500s-2.500-3 0-5.500c1-1 2.500-1.500 4-1M10.500 12C6 12 4 10 4 8s3-2.500 5.500 0c1 1 1.500 2.500 1 4',
+    thermo: 'M14 14.800V5a2 2 0 0 0-4 0v9.800a4 4 0 1 0 4 0zM12 9v7',
+    drop: 'M12 3s6 6.500 6 11a6 6 0 0 1-12 0c0-4.500 6-11 6-11z',
+    bolt: 'M13 2 4 14h7l-1 8 9-12h-7z',
+    door: 'M6 21V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17M3 21h18M14 12v.5',
+    lock: 'M6 11h12a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1zM8 11V8a4 4 0 0 1 8 0v3',
+    plant: 'M12 21v-9M12 12C12 7 9 5 5 5c0 4 2 7 7 7zM12 14c0-4 2-6 6-6 0 4-2 6-6 6zM8 21h8',
+    wifi: 'M2 9a15 15 0 0 1 20 0M5 12.500a10 10 0 0 1 14 0M8.500 16a5 5 0 0 1 7 0M12 19.500v.01',
+    sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.900 4.900l1.400 1.400M17.700 17.700l1.400 1.400M2 12h2M20 12h2M4.900 19.100l1.400-1.400M17.700 6.300l1.400-1.400',
+    moon: 'M20 14.500A8 8 0 1 1 9.500 4 6.500 6.500 0 0 0 20 14.500z',
+    bell: 'M6 16V11a6 6 0 0 1 12 0v5l1.500 2h-15zM10 21h4',
+    gauge: 'M4 18a9 9 0 1 1 16 0M12 14l4-5M12 14.500v.01',
+    chart: 'M4 19V5M4 19h16M8 15l3-4 3 2 5-7',
+    hand: 'M9 11V5.500a1.500 1.500 0 0 1 3 0V11M12 10V4.500a1.500 1.500 0 0 1 3 0V11M15 11V6.500a1.500 1.500 0 0 1 3 0V14a7 7 0 0 1-7 7h-1a6 6 0 0 1-5-3l-2-3.500a1.500 1.500 0 0 1 2.500-1.500L9 15V9a1.500 1.500 0 0 1 3 0',
+    slider: 'M4 8h10M18 8h2M4 16h2M10 16h10M16 6v4M8 14v4',
+    text: 'M5 6h14M5 12h14M5 18h9',
+    photo: 'M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM4 16l5-5 4 4 2-2 5 5M15 8.500v.01',
+    flag: 'M5 21V4M5 4h11l-2 4 2 4H5',
+    home: 'M4 11.500 12 5l8 6.500V19a1 1 0 0 1-1 1h-4v-5H9v5H5a1 1 0 0 1-1-1z',
+    dot: 'M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0',
+  };
+  const PICKABLE_ICONS = ['bulb', 'power', 'fan', 'thermo', 'drop', 'bolt', 'door', 'lock', 'plant', 'wifi', 'sun', 'moon', 'bell', 'gauge', 'chart', 'hand', 'home', 'flag'];
+  const DEFAULT_ICON = {
+    toggle: 'bulb', button: 'hand', slider: 'slider', value: 'thermo', text: 'text', gauge: 'gauge',
+    bar: 'chart', line: 'chart', indicator: 'dot', image: 'photo', label: 'flag',
+  };
+  // Starting size on the canvas: [columns, rows]. A phone shows 4 columns.
+  const DEFAULT_SIZE = {
+    toggle: [2, 1], button: [2, 1], slider: [4, 1], value: [2, 1], text: [2, 1], gauge: [2, 2],
+    bar: [2, 1], line: [4, 2], indicator: [2, 1], image: [2, 2], label: [4, 1],
+  };
+  const TILE_COLORS = ['#7c8cff', '#3ee3b5', '#ffb86b', '#ff6b8a', '#5ec8ff', '#c792ea'];
+
+  function iconSvg(name) {
+    return s('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' }, s('path', { d: ICON_PATHS[name] || ICON_PATHS.dot }));
+  }
+
+  function tileSize(widget) {
+    const c = widget.config || {};
+    const d = DEFAULT_SIZE[widget.type] || [2, 1];
+    const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, Number.isFinite(n) ? n : lo));
+    return [clamp(Number(c.w) || d[0], 1, 4), clamp(Number(c.h) || d[1], 1, 4)];
+  }
+
+  // Numbers count up to their new value instead of jumping
+  const tweens = new WeakMap();
+  function setNumber(el, raw) {
+    if (typeof raw !== 'number') {
+      el.textContent = formatValue(raw);
+      el.dataset.num = '';
+      return;
+    }
+    const from = el.dataset.num === '' || el.dataset.num === undefined ? raw : Number(el.dataset.num);
+    el.dataset.num = String(raw);
+    if (from === raw || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      el.textContent = formatValue(raw);
+      return;
+    }
+    const start = performance.now();
+    const token = {};
+    tweens.set(el, token);
+    const step = (now) => {
+      if (tweens.get(el) !== token) return;
+      const p = Math.min(1, (now - start) / 600);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = formatValue(from + (raw - from) * eased);
+      if (p < 1) requestAnimationFrame(step);
+      else el.textContent = formatValue(raw);
+    };
+    requestAnimationFrame(step);
+  }
+
+  function buzz(ms = 12) {
+    try { if (navigator.vibrate) navigator.vibrate(ms); } catch {}
+  }
+
+  // ---------- Rendering: the canvas ----------
+
+  function visibleWidgets() {
+    return state.widgets.filter((w) => !state.filter || w.deviceId === state.filter);
+  }
+
   function renderGrid() {
     const grid = $('grid');
     grid.replaceChildren();
     state.cards.clear();
+    grid.classList.toggle('editing', state.studio);
 
-    const visible = state.widgets.filter((w) => !state.filter || w.deviceId === state.filter);
+    const visible = visibleWidgets();
 
     if (state.widgets.length === 0) {
       grid.append(
@@ -418,100 +580,128 @@
     }
 
     if (visible.length === 0) {
-      grid.append(h('div', { class: 'empty' }, h('p', { text: t('device_no_widgets') })));
+      grid.append(
+        h(
+          'div',
+          { class: 'empty' },
+          h('p', { text: t('device_no_widgets') }),
+          h('button', { class: 'btn btn-primary', type: 'button', onclick: openWidgetModal, text: t('add_widget_cta') }),
+        ),
+      );
       return;
     }
 
-    for (const widget of visible) {
+    visible.forEach((widget, i) => {
       const card = buildWidgetCard(widget);
+      card.style.setProperty('--i', String(Math.min(i, 14)));
       state.cards.set(widget.id, card);
       grid.append(card);
       updateWidgetCard(card, widget);
-    }
+    });
+
+    grid.append(
+      h(
+        'button',
+        { class: 'add-tile', type: 'button', onclick: openWidgetModal },
+        s('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' }, s('path', { d: 'M12 5v14M5 12h14' })),
+        t('add_widget_btn'),
+      ),
+    );
   }
 
   function buildWidgetCard(widget) {
-    const body = widgetBody(widget.type);
-    // Only widgets that show values from the board can be switched off from receiving them
-    const receiving = !(widget.config && widget.config.receive === false);
-    const recv = OUTPUT_GADGETS.includes(widget.type)
-      ? [h('button', {
-          class: 'recv-toggle',
-          type: 'button',
-          'aria-pressed': String(receiving),
-          title: t('receiving_hint'),
-          text: receiving ? t('receiving_on') : t('receiving_off'),
-          onclick: () => toggleReceiving(widget),
-        })]
-      : [];
+    const [w, hgt] = tileSize(widget);
+    const cfg = widget.config || {};
+    const icon = cfg.icon && ICON_PATHS[cfg.icon] ? cfg.icon : DEFAULT_ICON[widget.type] || 'dot';
+    const decor = widget.type === 'image' || widget.type === 'label';
+
     const edit = h(
-      'button',
-      { class: 'widget-remove widget-edit', type: 'button', 'aria-label': t('edit_widget'), title: t('edit_widget'), onclick: () => openEditWidget(widget) },
-      '✎',
+      'div',
+      { class: 'edit-ui' },
+      h('button', { class: 'e-del', type: 'button', 'aria-label': t('remove_widget'), title: t('remove'), onclick: (e) => { e.stopPropagation(); removeWidget(widget); } },
+        s('svg', { viewBox: '0 0 24 24' }, s('path', { d: 'M6 6l12 12M18 6 6 18' }))),
+      h('button', { class: 'e-resize', type: 'button', 'aria-label': t('resize_tile'), title: t('resize_tile') },
+        s('svg', { viewBox: '0 0 24 24' }, s('path', { d: 'M20 14v6h-6M10 20 20 10' }))),
     );
-    const remove = h(
-      'button',
-      {
-        class: 'widget-remove',
-        type: 'button',
-        'aria-label': t('remove_widget'),
-        title: t('remove'),
-        onclick: () => removeWidget(widget),
-      },
-      '×',
-    );
-    return h(
-      'article',
-      { class: 'card widget', 'data-id': widget.id, 'data-type': widget.type },
-      h(
+    const titled = Boolean((widget.title || '').trim());
+    const top = widget.type === 'label'
+      ? null
+      : h(
         'div',
-        { class: 'widget-head' },
-        h(
-          'div',
-          null,
-          h('div', { class: 'widget-title', 'data-role': 'title', text: widget.title }),
-          h('div', { class: 'widget-device', 'data-role': 'device' }),
-        ),
-        h('div', { class: 'widget-actions' }, ...recv, edit, remove),
-      ),
-      body,
-      h('div', { class: 'updated', 'data-role': 'updated' }),
+        { class: `tile-top${titled ? '' : ' untitled'}` },
+        h('span', { class: 'tile-ico' }, iconSvg(icon)),
+        h('span', { class: 'tile-title', 'data-role': 'title', text: widget.title }),
+        widget.type === 'slider' ? h('span', { class: 'slider-value', 'data-role': 'value' }) : null,
+        h('span', { class: 'tile-dev', 'data-role': 'device' }),
+      );
+
+    const card = h(
+      'article',
+      {
+        class: 'tile',
+        'data-id': widget.id,
+        'data-type': widget.type,
+        'data-fit': cfg.fit || 'cover',
+        'data-w': String(w),
+        style: `--w:${w};--h:${hgt};${cfg.accent ? `--tile-accent:${cfg.accent};` : ''}`,
+      },
+      top,
+      widgetBody(widget, icon),
+      decor ? null : h('div', { class: 'tile-foot', 'data-role': 'updated' }),
+      edit,
     );
+    bindTileEditing(card, widget);
+    return card;
   }
 
-  function widgetBody(type) {
-    if (type === 'value') {
+  function widgetBody(widget, icon) {
+    const type = widget.type;
+    if (type === 'label') {
+      const cfg = widget.config || {};
       return h(
         'div',
-        { class: 'big-value' },
-        h('span', { 'data-role': 'value' }),
-        h('span', { class: 'unit', 'data-role': 'unit' }),
+        { class: 'label-block' },
+        h('div', { class: 'label-title' }, h('span', { class: 'tile-ico' }, iconSvg(icon)), h('span', { text: widget.title || '' })),
+        cfg.sub ? h('div', { class: 'label-sub', text: cfg.sub }) : null,
       );
     }
 
-    if (type === 'text') {
+    if (type === 'image') {
       return h(
         'div',
-        { class: 'big-value text-value' },
+        { class: 'img-layer' },
+        h('div', { class: 'img-empty', 'data-role': 'img-empty' },
+          s('svg', { viewBox: '0 0 24 24' }, s('path', { d: ICON_PATHS.photo })),
+          h('span', { text: t('image_empty') })),
+        h('img', { 'data-role': 'img-a', alt: '', draggable: 'false', onerror: (e) => e.target.classList.remove('show') }),
+        h('img', { 'data-role': 'img-b', alt: '', draggable: 'false', onerror: (e) => e.target.classList.remove('show') }),
+      );
+    }
+
+    const body = (...kids) => h('div', { class: 'tile-body' }, ...kids);
+
+    if (type === 'value' || type === 'text') {
+      return body(h(
+        'div',
+        { class: `big-value${type === 'text' ? ' text-value' : ''}` },
         h('span', { 'data-role': 'value' }),
         h('span', { class: 'unit', 'data-role': 'unit' }),
-      );
+      ));
     }
 
     if (type === 'slider') {
-      return h(
-        'div',
-        { class: 'slider-row' },
-        h('input', { class: 'slider', type: 'range', 'data-role': 'slider', 'aria-label': t('type_slider') }),
-        h('span', { class: 'slider-value', 'data-role': 'value' }),
+      return body(
+        h(
+          'div',
+          { class: 'slider-row' },
+          h('input', { class: 'slider', type: 'range', 'data-role': 'slider', 'aria-label': widget.title || t('type_slider') }),
+        ),
       );
     }
 
     if (type === 'gauge') {
       const arc = 2 * Math.PI * 80 * 0.75;
-      return h(
-        'div',
-        null,
+      return body(
         s(
           'svg',
           { class: 'gauge', viewBox: '0 0 200 200', role: 'img', 'aria-label': t('gauge_label') },
@@ -522,7 +712,7 @@
           }),
           s('circle', {
             class: 'fill', 'data-role': 'fill',
-            cx: 100, cy: 100, r: 80, fill: 'none', stroke: 'url(#gaugeGrad)', 'stroke-width': 14, 'stroke-linecap': 'round',
+            cx: 100, cy: 100, r: 80, fill: 'none', 'stroke-width': 14, 'stroke-linecap': 'round',
             'stroke-dasharray': `${arc} ${2 * Math.PI * 80}`, 'stroke-dashoffset': arc, transform: 'rotate(135 100 100)',
           }),
           s('text', { class: 'gauge-value', x: 100, y: 108, 'data-role': 'gv' }),
@@ -534,107 +724,129 @@
     if (type === 'line') {
       return h(
         'div',
-        null,
+        { class: 'tile-body' },
+        h(
+          'div',
+          { class: 'big-value' },
+          h('span', { 'data-role': 'value' }),
+          h('span', { class: 'unit', 'data-role': 'unit' }),
+        ),
         s(
           'svg',
           { class: 'spark', viewBox: '0 0 300 86', preserveAspectRatio: 'none', role: 'img', 'aria-label': t('trend_label') },
           s('path', { class: 'area', 'data-role': 'area', d: '' }),
           s('path', { class: 'line', 'data-role': 'line', d: '' }),
         ),
-        h(
-          'div',
-          { class: 'big-value', style: 'font-size:28px;margin-top:10px;' },
-          h('span', { 'data-role': 'value' }),
-          h('span', { class: 'unit', 'data-role': 'unit' }),
-        ),
       );
     }
 
     if (type === 'toggle') {
-      return h(
-        'div',
-        { class: 'control' },
-        h('span', { class: 'state-label', 'data-role': 'state' }),
-        h('button', { class: 'switch', type: 'button', role: 'switch', 'aria-checked': 'false', 'data-role': 'switch' }),
+      return body(
+        h('div', { class: 'state-text', 'data-role': 'state' }),
+        h('button', { class: 'tile-hit', type: 'button', role: 'switch', 'aria-checked': 'false', 'aria-label': widget.title || '', 'data-role': 'switch' }),
       );
     }
 
     if (type === 'bar') {
-      return h(
-        'div',
-        null,
-        h('div', { class: 'bar-track' }, h('div', { class: 'bar-fill', 'data-role': 'bar' })),
+      return body(
         h(
           'div',
-          { class: 'big-value', style: 'font-size:26px;margin-top:12px;' },
+          { class: 'big-value', style: 'font-size:clamp(22px,24cqmin,34px);margin-bottom:8px;' },
           h('span', { 'data-role': 'value' }),
           h('span', { class: 'unit', 'data-role': 'unit' }),
         ),
+        h('div', { class: 'bar-track' }, h('div', { class: 'bar-fill', 'data-role': 'bar' })),
       );
     }
 
     if (type === 'indicator') {
-      return h(
-        'div',
-        { class: 'control' },
-        h('span', { class: 'lamp', 'data-role': 'lamp' }),
-        h('span', { class: 'state-label', 'data-role': 'state' }),
+      return body(
+        h('div', { class: 'control' }, h('span', { class: 'lamp', 'data-role': 'lamp' }), h('span', { class: 'state-text', 'data-role': 'state' })),
       );
     }
 
     // button
-    return h('button', { class: 'pulse-btn', type: 'button', 'data-role': 'pulse', text: t('trigger') });
+    return body(
+      h('div', { class: 'state-text', text: t('trigger') }),
+      h('button', { class: 'pulse-btn', type: 'button', 'data-role': 'pulse', 'aria-label': widget.title || t('trigger'), text: t('trigger') }),
+    );
   }
 
   function updateWidgetCard(card, widget) {
     const device = state.devices.get(widget.deviceId);
-    // This gadget's own value and time. Other gadgets do not change it.
+    // This tile's own value and time. Other tiles do not change it.
     const info = device && device.fields ? device.fields[widget.field] : undefined;
     const raw = info ? info.value : device && device.latest ? device.latest[widget.field] : undefined;
     const fieldTs = info ? info.ts : null;
-    const deviceEl = card.querySelector('[data-role="device"]');
-    // Device name, then the data field as its own chip, so the two are easy to tell apart
-    if (device) {
-      const chip = h('span', { class: 'field-chip', title: t('field_label'), text: widget.field });
-      deviceEl.replaceChildren(document.createTextNode(`${device.name} `), chip);
-    } else {
-      deviceEl.textContent = t('device_removed');
-    }
-    card.querySelector('[data-role="updated"]').dataset.ts = fieldTs ? String(fieldTs) : '';
-
     const unit = widget.config && widget.config.unit ? widget.config.unit : '';
+    const q = (role) => card.querySelector(`[data-role="${role}"]`);
+
+    // The device name shows only on the "all devices" view, where tiles from several boards mix
+    const deviceEl = q('device');
+    if (deviceEl) deviceEl.textContent = !state.filter && device ? device.name : '';
+
+    if (widget.type === 'label') return;
+
+    if (widget.type === 'image') {
+      const cfg = widget.config || {};
+      const a = q('img-a');
+      const b = q('img-b');
+      const urlOf = (slot, v) => `/api/widgets/${widget.id}/image?slot=${slot}&v=${v}`;
+      if (cfg.imgA && a.dataset.v !== String(cfg.imgA)) { a.src = urlOf('a', cfg.imgA); a.dataset.v = String(cfg.imgA); }
+      if (!cfg.imgA) { a.removeAttribute('src'); a.dataset.v = ''; }
+      if (cfg.imgB && b.dataset.v !== String(cfg.imgB)) { b.src = urlOf('b', cfg.imgB); b.dataset.v = String(cfg.imgB); }
+      if (!cfg.imgB) { b.removeAttribute('src'); b.dataset.v = ''; }
+      // The second picture shows while the linked field is on
+      let on = false;
+      if (cfg.stateField && device) {
+        const f = device.fields && device.fields[cfg.stateField];
+        const v = f ? f.value : device.latest ? device.latest[cfg.stateField] : undefined;
+        on = v === true || (typeof v === 'number' && v > 0);
+      }
+      const showB = Boolean(cfg.imgB) && on;
+      b.classList.toggle('show', showB);
+      a.classList.toggle('show', Boolean(cfg.imgA) && !showB);
+      q('img-empty').hidden = Boolean(cfg.imgA || cfg.imgB);
+      return;
+    }
+
+    const stamp = q('updated');
+    if (stamp) stamp.dataset.ts = fieldTs ? String(fieldTs) : '';
 
     if (widget.type === 'value') {
-      card.querySelector('[data-role="value"]').textContent = formatValue(raw);
-      card.querySelector('[data-role="unit"]').textContent = typeof raw === 'number' ? unit : '';
+      setNumber(q('value'), raw);
+      q('unit').textContent = typeof raw === 'number' ? unit : '';
     }
 
     if (widget.type === 'text') {
-      card.querySelector('[data-role="value"]').textContent = raw === undefined ? t('waiting_data') : String(raw);
-      card.querySelector('[data-role="unit"]').textContent = typeof raw === 'number' ? unit : '';
+      q('value').textContent = raw === undefined ? t('waiting_data') : String(raw);
+      q('unit').textContent = typeof raw === 'number' ? unit : '';
     }
 
     if (widget.type === 'slider') {
       const min = Number(widget.config.min ?? 0);
       const max = Number(widget.config.max ?? 100);
-      const input = card.querySelector('[data-role="slider"]');
-      const valueEl = card.querySelector('[data-role="value"]');
+      const input = q('slider');
+      const valueEl = q('value');
       input.min = String(min);
       input.max = String(max);
+      const paint = () => input.style.setProperty('--p', `${(((Number(input.value) - min) / (max - min || 1)) * 100).toFixed(1)}%`);
       // Keep the thumb where the user drags it until they let go
       if (!input.dataset.dragging) {
         input.value = String(typeof raw === 'number' ? raw : min);
-        // A slider is a control, not a reading: until it has been used it simply has no value yet
+        paint();
         valueEl.textContent = typeof raw === 'number' ? `${formatValue(raw)} ${unit}`.trim() : t('not_set_yet');
       }
       if (!input.dataset.bound) {
         input.dataset.bound = '1';
         input.addEventListener('input', () => {
           input.dataset.dragging = '1';
+          paint();
           valueEl.textContent = `${input.value} ${unit}`.trim();
         });
         input.addEventListener('change', async () => {
           delete input.dataset.dragging;
+          buzz(8);
           try {
             await sendCommand(widget.deviceId, widget.field, Number(input.value));
           } catch (err) {
@@ -650,9 +862,9 @@
       const num = typeof raw === 'number' ? raw : min;
       const pct = Math.min(1, Math.max(0, (num - min) / (max - min || 1)));
       const arc = 2 * Math.PI * 80 * 0.75;
-      card.querySelector('[data-role="fill"]').setAttribute('stroke-dashoffset', String(arc * (1 - pct)));
-      card.querySelector('[data-role="gv"]').textContent = formatValue(raw);
-      card.querySelector('[data-role="gu"]').textContent = unit;
+      q('fill').setAttribute('stroke-dashoffset', String(arc * (1 - pct)));
+      setNumber(q('gv'), raw);
+      q('gu').textContent = unit;
     }
 
     if (widget.type === 'bar') {
@@ -660,27 +872,27 @@
       const max = Number(widget.config.max ?? 100);
       const num = typeof raw === 'number' ? raw : min;
       const pct = Math.min(1, Math.max(0, (num - min) / (max - min || 1)));
-      card.querySelector('[data-role="bar"]').style.width = `${(pct * 100).toFixed(1)}%`;
-      card.querySelector('[data-role="value"]').textContent = formatValue(raw);
-      card.querySelector('[data-role="unit"]').textContent = typeof raw === 'number' ? unit : '';
+      q('bar').style.width = `${(pct * 100).toFixed(1)}%`;
+      setNumber(q('value'), raw);
+      q('unit').textContent = typeof raw === 'number' ? unit : '';
     }
 
     if (widget.type === 'indicator') {
       const on = raw === true || (typeof raw === 'number' && raw > 0);
-      card.querySelector('[data-role="lamp"]').classList.toggle('on', on);
-      card.querySelector('[data-role="state"]').textContent =
-        raw === undefined ? t('waiting_data') : on ? t('on') : t('off');
+      q('lamp').classList.toggle('on', on);
+      card.classList.toggle('on', on);
+      q('state').textContent = raw === undefined ? t('waiting_data') : on ? t('on') : t('off');
     }
 
     if (widget.type === 'line') {
       const points = (state.history.get(widget.deviceId) || [])
         .map((r) => r.data[widget.field])
         .filter((v) => typeof v === 'number');
-      card.querySelector('[data-role="value"]').textContent = formatValue(raw);
-      card.querySelector('[data-role="unit"]').textContent = typeof raw === 'number' ? unit : '';
+      setNumber(q('value'), raw);
+      q('unit').textContent = typeof raw === 'number' ? unit : '';
       const { line, area } = sparkPaths(points);
-      card.querySelector('[data-role="line"]').setAttribute('d', line);
-      card.querySelector('[data-role="area"]').setAttribute('d', area);
+      q('line').setAttribute('d', line);
+      q('area').setAttribute('d', area);
     }
 
     if (widget.type === 'toggle') {
@@ -690,11 +902,11 @@
         if (pend.value === Boolean(raw) || Date.now() > pend.until) state.pending.delete(widget.id);
         else on = pend.value;
       }
-      const sw = card.querySelector('[data-role="switch"]');
+      const sw = q('switch');
       sw.setAttribute('aria-checked', String(on));
+      card.classList.toggle('on', on);
       // A switch shows the last value set from the dashboard. It does not wait for the board.
-      card.querySelector('[data-role="state"]').textContent =
-        raw === undefined && !pend ? t('not_set_yet') : on ? t('on') : t('off');
+      q('state').textContent = raw === undefined && !pend ? t('not_set_yet') : on ? t('on') : t('off');
       if (!sw.dataset.bound) {
         sw.dataset.bound = '1';
         sw.addEventListener('click', () => toggleControl(widget, card));
@@ -702,28 +914,241 @@
     }
 
     if (widget.type === 'button') {
-      const btn = card.querySelector('[data-role="pulse"]');
+      const btn = q('pulse');
       if (!btn.dataset.bound) {
         btn.dataset.bound = '1';
         bindHoldButton(widget, btn);
       }
     }
 
-    // Each gadget shows when its own value last changed, its average gap, and a warning after 15 minutes
-    const stamp = card.querySelector('[data-role="updated"]');
+    // Each tile shows when its own value last changed, its average gap, and a warning after 15 minutes
     // Buttons and switches the dashboard sends have no time until they have been used
-    if (widget.type === 'button' || (INPUT_GADGETS.includes(widget.type) && !fieldTs)) {
-      stamp.dataset.ts = '';
-      stamp.textContent = '';
-    } else {
-      // Switches are sent by the dashboard, so an average gap only means something for values the board sends
-      const avg = INPUT_GADGETS.includes(widget.type) ? 0 : state.intervals.get(widget.deviceId)?.[widget.field];
-      stamp.dataset.avg = avg ? String(avg) : '';
-      stamp.textContent = stampText(fieldTs, avg);
-      const stale = fieldTs && Date.now() - fieldTs > 15 * 60 * 1000;
-      stamp.classList.toggle('stale', Boolean(stale));
-      stamp.title = stale ? t('stale_note') : '';
+    if (stamp) {
+      if (widget.type === 'button' || (INPUT_GADGETS.includes(widget.type) && !fieldTs)) {
+        stamp.dataset.ts = '';
+        stamp.textContent = '';
+      } else {
+        // Switches are sent by the dashboard, so an average gap only means something for values the board sends
+        const avg = INPUT_GADGETS.includes(widget.type) ? 0 : state.intervals.get(widget.deviceId)?.[widget.field];
+        stamp.dataset.avg = avg ? String(avg) : '';
+        stamp.textContent = stampText(fieldTs, avg);
+        const stale = fieldTs && Date.now() - fieldTs > 15 * 60 * 1000;
+        stamp.classList.toggle('stale', Boolean(stale));
+        stamp.title = stale ? t('stale_note') : '';
+      }
     }
+  }
+
+  // ---------- Edit mode: drag to reorder, drag the corner to resize ----------
+
+  function setStudio(on) {
+    state.studio = Boolean(on);
+    $('grid').classList.toggle('editing', state.studio);
+    $('studio-bar').classList.toggle('hidden', !state.studio);
+    for (const id of ['edit-layout', 'tab-edit']) {
+      const el = $(id);
+      if (el) el.setAttribute('aria-pressed', String(state.studio));
+    }
+    if (state.studio) buzz(10);
+    else saveLayoutNow();
+  }
+
+  let layoutTimer = null;
+  function queueLayoutSave() {
+    clearTimeout(layoutTimer);
+    layoutTimer = setTimeout(saveLayoutNow, 600);
+  }
+
+  async function saveLayoutNow() {
+    clearTimeout(layoutTimer);
+    const items = state.widgets.map((w, i) => {
+      const [cw, ch] = tileSize(w);
+      return { id: w.id, position: i, w: cw, h: ch };
+    });
+    if (!items.length) return;
+    try {
+      await api('/api/widgets/layout', { method: 'PUT', body: JSON.stringify({ items }) });
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  }
+
+  // Put the visible tiles into the order they now have on screen
+  function adoptDomOrder() {
+    const ids = [...$('grid').querySelectorAll('.tile')].map((el) => el.dataset.id);
+    const shown = new Set(ids);
+    const byId = new Map(state.widgets.map((w) => [w.id, w]));
+    const queue = ids.map((id) => byId.get(id)).filter(Boolean);
+    state.widgets = state.widgets.map((w) => (shown.has(w.id) ? queue.shift() : w));
+  }
+
+  let activeDrag = null;
+
+  function bindTileEditing(card, widget) {
+    // Moving: with a mouse, drag at once; with a finger, press and hold for a moment first
+    card.addEventListener('pointerdown', (event) => {
+      if (!state.studio || event.button > 0) return;
+      if (event.target.closest('.edit-ui button')) return;
+      beginDrag(card, widget, event);
+    });
+    const handle = card.querySelector('.e-resize');
+    handle.addEventListener('pointerdown', (event) => {
+      if (!state.studio) return;
+      event.stopPropagation();
+      event.preventDefault();
+      beginResize(card, widget, event);
+    });
+  }
+
+  function beginDrag(card, widget, event) {
+    if (activeDrag) return;
+    const grid = $('grid');
+    const touch = event.pointerType === 'touch' || event.pointerType === 'pen';
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const grab = { x: 0, y: 0 };
+    let started = false;
+    let holdTimer = null;
+    const pointerId = event.pointerId;
+
+    const start = () => {
+      started = true;
+      const r = card.getBoundingClientRect();
+      grab.x = startX - r.left;
+      grab.y = startY - r.top;
+      card.classList.add('dragging');
+      try { card.setPointerCapture(pointerId); } catch {}
+      buzz(15);
+      activeDrag = { card, move };
+    };
+
+    const place = (px, py) => {
+      card.style.transform = 'none';
+      const natural = card.getBoundingClientRect();
+      card.style.transform = `translate(${px - grab.x - natural.left}px, ${py - grab.y - natural.top}px)`;
+    };
+
+    function move(ev) {
+      if (ev.pointerId !== pointerId) return;
+      if (!started) {
+        const dist = Math.hypot(ev.clientX - startX, ev.clientY - startY);
+        if (!touch && dist > 5) start();
+        else if (touch && dist > 9) cancel(); // the finger is scrolling, not dragging
+        if (!started) return;
+      }
+      ev.preventDefault();
+      place(ev.clientX, ev.clientY);
+      // Near the top or bottom edge, scroll the page
+      if (ev.clientY < 90) window.scrollBy(0, -14);
+      else if (ev.clientY > window.innerHeight - 110) window.scrollBy(0, 14);
+
+      // Which tile is under the finger? Swap places with it
+      const under = document.elementsFromPoint(ev.clientX, ev.clientY).find((el) => el.classList && el.classList.contains('tile') && el !== card);
+      if (!under) return;
+      const tiles = [...grid.querySelectorAll('.tile')];
+      const first = new Map(tiles.map((el) => [el, el.getBoundingClientRect()]));
+      const before = tiles.indexOf(card) < tiles.indexOf(under);
+      grid.insertBefore(card, before ? under.nextSibling : under);
+      for (const el of tiles) {
+        if (el === card) continue;
+        const a = first.get(el);
+        const b = el.getBoundingClientRect();
+        const dx = a.left - b.left;
+        const dy = a.top - b.top;
+        if (dx || dy) el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.2,.8,.2,1)' });
+      }
+      place(ev.clientX, ev.clientY);
+    }
+
+    function cancel() {
+      clearTimeout(holdTimer);
+      cleanup();
+    }
+
+    function cleanup() {
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', up);
+      document.removeEventListener('pointercancel', up);
+    }
+
+    function up(ev) {
+      if (ev.pointerId !== pointerId) return;
+      clearTimeout(holdTimer);
+      cleanup();
+      // A tap without dragging opens the tile's settings
+      if (!started) {
+        if (ev.type === 'pointerup' && Math.hypot(ev.clientX - startX, ev.clientY - startY) < 6) openEditWidget(widget);
+        return;
+      }
+      activeDrag = null;
+      // Settle into the slot
+      const from = card.getBoundingClientRect();
+      card.style.transform = 'none';
+      const to = card.getBoundingClientRect();
+      card.classList.remove('dragging');
+      card.animate(
+        [{ transform: `translate(${from.left - to.left}px, ${from.top - to.top}px)`, scale: 1.04 }, { transform: 'none', scale: 1 }],
+        { duration: 240, easing: 'cubic-bezier(.2,.8,.2,1)' },
+      );
+      card.style.transform = '';
+      adoptDomOrder();
+      queueLayoutSave();
+    }
+
+    document.addEventListener('pointermove', move, { passive: false });
+    document.addEventListener('pointerup', up);
+    document.addEventListener('pointercancel', up);
+    if (touch) holdTimer = setTimeout(start, 280);
+  }
+
+  // While a tile is being dragged with a finger, the page must not scroll under it
+  document.addEventListener('touchmove', (e) => { if (activeDrag) e.preventDefault(); }, { passive: false });
+
+  function beginResize(card, widget, event) {
+    const grid = $('grid');
+    const rtl = document.documentElement.dir === 'rtl';
+    const cs = getComputedStyle(grid);
+    const cols = cs.gridTemplateColumns.split(' ').length;
+    const gap = parseFloat(cs.columnGap) || 10;
+    const row = parseFloat(cs.gridAutoRows) || 86;
+    const k = parseFloat(cs.getPropertyValue('--k')) || 1;
+    const colW = (grid.clientWidth - gap * (cols - 1)) / cols;
+    const stepX = (colW + gap) * k;
+    const stepY = row + gap;
+    const [w0, h0] = tileSize(widget);
+    const x0 = event.clientX;
+    const y0 = event.clientY;
+    const pointerId = event.pointerId;
+    card.classList.add('resizing');
+    activeDrag = { card };
+    buzz(10);
+
+    const move = (ev) => {
+      if (ev.pointerId !== pointerId) return;
+      ev.preventDefault();
+      const dx = (rtl ? -1 : 1) * (ev.clientX - x0);
+      const w = Math.min(4, Math.max(1, w0 + Math.round(dx / stepX)));
+      const hgt = Math.min(4, Math.max(1, h0 + Math.round((ev.clientY - y0) / stepY)));
+      if (w !== tileSize(widget)[0] || hgt !== tileSize(widget)[1]) {
+        widget.config = { ...(widget.config || {}), w, h: hgt };
+        card.style.setProperty('--w', String(w));
+        card.dataset.w = String(w);
+        card.style.setProperty('--h', String(hgt));
+        buzz(6);
+      }
+    };
+    const up = (ev) => {
+      if (ev.pointerId !== pointerId) return;
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', up);
+      document.removeEventListener('pointercancel', up);
+      card.classList.remove('resizing');
+      activeDrag = null;
+      queueLayoutSave();
+    };
+    document.addEventListener('pointermove', move, { passive: false });
+    document.addEventListener('pointerup', up);
+    document.addEventListener('pointercancel', up);
   }
 
   function sparkPaths(values) {
@@ -757,6 +1182,8 @@
     // Hold the new state until the board reports it (about 10 s), so the switch does not flip back
     state.pending.set(widget.id, { value: next, until: Date.now() + 20000 });
     sw.setAttribute('aria-checked', String(next));
+    card.classList.toggle('on', next);
+    buzz(14);
     card.querySelector('[data-role="state"]').textContent = next ? t('on') : t('off');
     try {
       await sendCommand(widget.deviceId, widget.field, next);
@@ -929,7 +1356,15 @@
     $('widget-unit').value = (widget.config && widget.config.unit) || '';
     $('widget-min').value = String(widget.config && widget.config.min !== undefined ? widget.config.min : 0);
     $('widget-max').value = String(widget.config && widget.config.max !== undefined ? widget.config.max : 100);
+    const cfg = widget.config || {};
+    pickedIcon = cfg.icon || '';
+    pickedAccent = cfg.accent || '';
+    paintRecvButton(widget);
+    $('widget-sub').value = cfg.sub || '';
+    $('widget-fit').value = cfg.fit || 'cover';
+    $('widget-statefield').value = cfg.stateField || '';
     syncWidgetFormType();
+    renderImagePreviews(widget);
     $('widget-error').textContent = '';
     openModal('widget-modal');
   }
@@ -941,12 +1376,19 @@
       return;
     }
     editingWidget = null;
+    pickedIcon = '';
+    pickedAccent = '';
+    $('widget-sub').value = '';
+    $('widget-fit').value = 'cover';
+    $('widget-statefield').value = '';
+    $('recv-field').hidden = true;
     setEditMode(false);
     const select = $('widget-device');
     select.replaceChildren(...[...state.devices.values()].map((d) => h('option', { value: d.id, text: d.name })));
     if (state.filter) select.value = state.filter;
     populateFieldOptions();
     renderGadgetGrid();
+    syncWidgetFormType();
     $('widget-error').textContent = '';
     openModal('widget-modal');
   }
@@ -962,6 +1404,7 @@
   // Input gadgets send commands to the board. Output gadgets only show readings.
   const INPUT_GADGETS = ['toggle', 'button', 'slider'];
   const OUTPUT_GADGETS = ['value', 'text', 'gauge', 'bar', 'line', 'indicator'];
+  const DECOR_GADGETS = ['image', 'label'];
 
   // Small drawings of each gadget. They move a little so the choice is easy to see.
   function gadgetArt(type) {
@@ -1014,6 +1457,19 @@
         s('circle', { class: 'art-lamp', cx: 60, cy: 32, r: 14 }),
       );
     }
+    if (type === 'image') {
+      return svg(
+        s('rect', { class: 'art-bar-track', x: 22, y: 8, width: 76, height: 48, rx: 8 }),
+        s('path', { class: 'art-line', d: 'M28 48 L50 28 L64 40 L74 32 L92 48', fill: 'none', 'stroke-width': 3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
+        s('circle', { class: 'art-knob', cx: 80, cy: 20, r: 5 }),
+      );
+    }
+    if (type === 'label') {
+      return svg(
+        s('text', { class: 'art-num', x: 60, y: 34, 'text-anchor': 'middle' }, 'Aa'),
+        s('rect', { class: 'art-bar-track', x: 20, y: 46, width: 80, height: 3, rx: 1.500 }),
+      );
+    }
     return svg(s('rect', { class: 'art-btn', x: 28, y: 20, width: 64, height: 30, rx: 15 }));
   }
 
@@ -1030,6 +1486,8 @@
       ...INPUT_GADGETS.map(card),
       h('p', { class: 'gadget-group', text: t('group_output') }),
       ...OUTPUT_GADGETS.map(card),
+      h('p', { class: 'gadget-group', text: t('group_decor') }),
+      ...DECOR_GADGETS.map(card),
     );
   }
 
@@ -1041,10 +1499,106 @@
     syncWidgetFormType();
   }
 
+  // Look pickers in the widget form
+  let pickedIcon = '';
+  let pickedAccent = '';
+
+  function renderLookPickers() {
+    const type = $('widget-type').value;
+    const current = pickedIcon || DEFAULT_ICON[type] || 'dot';
+    $('icon-grid').replaceChildren(...PICKABLE_ICONS.map((name) => h(
+      'button',
+      {
+        class: 'icon-btn', type: 'button', role: 'radio', 'aria-checked': String(name === current), title: name,
+        onclick: () => { pickedIcon = name; renderLookPickers(); },
+      },
+      iconSvg(name),
+    )));
+    const colors = ['', ...TILE_COLORS];
+    $('accent-swatches').replaceChildren(...colors.map((color) => h('button', {
+      class: 'swatch', type: 'button', role: 'radio', 'aria-checked': String(color === pickedAccent),
+      style: `--swatch:${color || 'linear-gradient(135deg,#7c8cff,#3ee3b5)'};`,
+      'aria-label': color || 'default',
+      onclick: () => { pickedAccent = color; renderLookPickers(); },
+    })));
+  }
+
   function syncWidgetFormType() {
     const type = $('widget-type').value;
+    const decor = DECOR_GADGETS.includes(type);
     $('gauge-range').hidden = !['gauge', 'bar', 'slider'].includes(type);
-    $('widget-unit').closest('.field').hidden = ['toggle', 'button', 'indicator'].includes(type);
+    $('widget-unit').closest('.field').hidden = ['toggle', 'button', 'indicator'].includes(type) || decor;
+    // Pictures and headings are not tied to a value from the board
+    $('widget-field').closest('.field').hidden = decor;
+    $('image-section').hidden = type !== 'image' || !editingWidget;
+    $('label-section').hidden = type !== 'label';
+    $('widget-sub').closest('.field').hidden = type !== 'label';
+    $('look-section').hidden = type === 'image';
+    renderLookPickers();
+  }
+
+  // Receiving on/off lives in the tile's settings
+  function paintRecvButton(widget) {
+    const field = $('recv-field');
+    field.hidden = !OUTPUT_GADGETS.includes(widget.type);
+    const on = !(widget.config && widget.config.receive === false);
+    $('recv-btn').textContent = on ? t('receiving_on') : t('receiving_off');
+    $('recv-btn').setAttribute('aria-pressed', String(on));
+  }
+
+  function renderImagePreviews(widget) {
+    const cfg = (widget && widget.config) || {};
+    for (const [slot, v] of [['a', cfg.imgA], ['b', cfg.imgB]]) {
+      const box = $(`img-prev-${slot}`);
+      box.style.backgroundImage = v ? `url("/api/widgets/${widget.id}/image?slot=${slot}&v=${v}")` : '';
+      box.textContent = v ? '' : '—';
+      $(`img-rm-${slot}`).hidden = !v;
+    }
+  }
+
+  // Phone photos are big. Shrink them in the browser before they are sent.
+  async function shrinkImage(file, maxSide = 1600) {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    for (const q of [0.86, 0.72, 0.58]) {
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', q));
+      if (blob && blob.size <= 1.9 * 1024 * 1024) return blob;
+    }
+    throw new Error(t('image_too_big'));
+  }
+
+  async function uploadTileImage(slot, file) {
+    if (!editingWidget || !file) return;
+    try {
+      const blob = await shrinkImage(file);
+      const res = await fetch(`/api/widgets/${editingWidget.id}/image?slot=${slot}`, {
+        method: 'PUT', credentials: 'same-origin', headers: { 'content-type': 'image/jpeg' }, body: blob,
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || t('request_failed'));
+      editingWidget.config = { ...(editingWidget.config || {}), ...body.config };
+      renderImagePreviews(editingWidget);
+      renderAll();
+    } catch (err) {
+      $('widget-error').textContent = err.message;
+    }
+  }
+
+  async function removeTileImage(slot) {
+    if (!editingWidget) return;
+    try {
+      const body = await api(`/api/widgets/${editingWidget.id}/image?slot=${slot}`, { method: 'DELETE' });
+      editingWidget.config = { ...(editingWidget.config || {}), ...body.config };
+      delete editingWidget.config[slot === 'b' ? 'imgB' : 'imgA'];
+      renderImagePreviews(editingWidget);
+      renderAll();
+    } catch (err) {
+      $('widget-error').textContent = err.message;
+    }
   }
 
   async function submitWidget(event) {
@@ -1052,17 +1606,23 @@
     const errorEl = $('widget-error');
     errorEl.textContent = '';
     const type = $('widget-type').value;
-    const field = $('widget-field').value.trim();
+    const decor = DECOR_GADGETS.includes(type);
+    const field = decor ? '' : $('widget-field').value.trim();
     const payload = {
-      deviceId: $('widget-device').value,
+      deviceId: editingWidget ? editingWidget.deviceId : $('widget-device').value,
       type,
       field,
       title: $('widget-title-input').value.trim() || field,
       unit: $('widget-unit').value.trim(),
       min: Number($('widget-min').value),
       max: Number($('widget-max').value),
+      icon: pickedIcon,
+      accent: pickedAccent,
+      sub: $('widget-sub').value.trim(),
+      fit: $('widget-fit').value,
+      stateField: $('widget-statefield').value.trim(),
     };
-    if (!/^[a-zA-Z0-9_]{1,32}$/.test(field)) {
+    if (!decor && !/^[a-zA-Z0-9_]{1,32}$/.test(field)) {
       errorEl.textContent = t('field_invalid');
       return;
     }
@@ -1096,6 +1656,8 @@
       $('widget-max').value = '100';
       renderAll();
       toast(t('widget_added'));
+      // A picture tile starts empty: open it so the photo can be chosen right away
+      if (widget.type === 'image') setTimeout(() => openEditWidget(widget), 250);
     } catch (err) {
       errorEl.textContent = err.message;
     }
@@ -1460,7 +2022,27 @@
       $('logout').before(h('a', { class: 'btn btn-ghost btn-block', href: '/admin', text: 'Admin' }));
     }
     $('avatar').textContent = (state.user.name || state.user.email || '?').trim().charAt(0).toUpperCase();
+    $('avatar-m').textContent = $('avatar').textContent;
+    $('user-email-m').textContent = state.user.email;
     renderGreeting();
+
+    // Studio: layout edit mode, and the phone tab bar
+    $('edit-layout').addEventListener('click', () => setStudio(!state.studio));
+    $('studio-done').addEventListener('click', () => setStudio(false));
+    $('tab-edit').addEventListener('click', () => { setView('dash'); setStudio(!state.studio); });
+    $('tab-add').addEventListener('click', () => { setView('dash'); openWidgetModal(); });
+    document.querySelectorAll('#tabbar [data-view]').forEach((btn) => btn.addEventListener('click', () => { setView(btn.dataset.view); window.scrollTo({ top: 0 }); }));
+    $('recv-btn').addEventListener('click', async () => {
+      if (!editingWidget) return;
+      await toggleReceiving(editingWidget);
+      paintRecvButton(editingWidget);
+    });
+    $('logout-m').addEventListener('click', () => $('logout').click());
+    $('grid').addEventListener('contextmenu', (e) => { if (state.studio) e.preventDefault(); });
+    for (const slot of ['a', 'b']) {
+      $(`img-file-${slot}`).addEventListener('change', (e) => { uploadTileImage(slot, e.target.files[0]); e.target.value = ''; });
+      $(`img-rm-${slot}`).addEventListener('click', () => removeTileImage(slot));
+    }
 
     $('add-device').addEventListener('click', () => { resetDeviceModal(); openModal('device-modal'); });
     $('add-device-2').addEventListener('click', () => { resetDeviceModal(); openModal('device-modal'); });
