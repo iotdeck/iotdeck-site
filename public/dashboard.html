@@ -43,6 +43,7 @@
       <header class="appbar" aria-label="IoTDeck">
         <div class="brand"><span class="brand-mark" aria-hidden="true"></span>IoTDeck</div>
         <span class="appbar-state" id="appbar-state"></span>
+        <button class="appbar-btn" id="focus-app" type="button" data-i18n-aria="focus_on" aria-label="Widgets only"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
       </header>
       <nav class="chips" id="chips" aria-label="Your devices"></nav>
 
@@ -53,6 +54,7 @@
         </div>
         <div class="actions">
           <button class="btn" id="add-device-2" data-i18n="add_device_btn">إضافة جهاز</button>
+          <button class="btn" id="focus-on" type="button" data-i18n="focus_on">عرض العناصر فقط</button>
           <button class="btn" id="edit-layout" type="button" aria-pressed="false" data-i18n="edit_layout">تعديل التخطيط</button>
           <button class="btn btn-primary" id="add-widget" data-i18n="add_widget_btn">إضافة عنصر</button>
         </div>
@@ -75,7 +77,7 @@
 
       <div class="studio-bar v-dash hidden" id="studio-bar" role="status">
         <span class="studio-hint" data-i18n="studio_hint">اسحب البطاقات لإعادة ترتيبها، واسحب الزاوية لتغيير الحجم.</span>
-        <button class="btn btn-primary" id="studio-done" type="button" data-i18n="studio_done">تم</button>
+        <span><button class="btn" id="studio-tidy" type="button" data-i18n="tidy">ترتيب تلقائي</button><button class="btn btn-primary" id="studio-done" type="button" data-i18n="studio_done">تم</button></span>
       </div>
 
       <section class="grid canvas v-dash" id="grid" aria-live="polite"></section>
@@ -93,11 +95,14 @@
         <div class="card me-card">
           <div class="user-chip"><span class="avatar" id="avatar-m" aria-hidden="true">·</span><span class="who" id="user-email-m"></span></div>
           <button class="btn btn-block js-lang" type="button">English</button>
+          <button class="btn btn-block" id="focus-on-m" type="button" data-i18n="focus_on">عرض العناصر فقط</button>
           <button class="btn btn-block" id="logout-m" type="button" data-i18n="sign_out">تسجيل الخروج</button>
         </div>
       </section>
     </main>
   </div>
+
+  <button class="focus-exit" id="focus-exit" type="button" data-i18n-aria="focus_off" aria-label="Show the interface"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/></svg></button>
 
   <nav class="tabbar" id="tabbar" aria-label="Main">
     <button type="button" data-view="dash" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4v-5H9v5H5a1 1 0 0 1-1-1z"/></svg><span data-i18n="tab_home">الرئيسية</span></button>

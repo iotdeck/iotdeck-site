@@ -532,11 +532,139 @@
     return s('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' }, s('path', { d: ICON_PATHS[name] || ICON_PATHS.dot }));
   }
 
+  // ---------- Free placement ----------
+  // Phones use 4 columns, wide screens 12. Each tile keeps its own x, y and width per layout; the height is shared.
+
+  const WIDE = window.matchMedia('(min-width: 861px)');
+  const WIDE_SPAN = [0, 2, 3, 6, 12];
+  const clampN = (n, lo, hi) => Math.min(hi, Math.max(lo, Number.isFinite(n) ? n : lo));
+
+  function bp() {
+    const wide = WIDE.matches;
+    return { wide, cols: wide ? 12 : 4, kx: wide ? 'dx' : 'x', ky: wide ? 'dy' : 'y', kw: wide ? 'dw' : 'w' };
+  }
+
   function tileSize(widget) {
     const c = widget.config || {};
     const d = DEFAULT_SIZE[widget.type] || [2, 1];
-    const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, Number.isFinite(n) ? n : lo));
-    return [clamp(Number(c.w) || d[0], 1, 4), clamp(Number(c.h) || d[1], 1, 4)];
+    const legacy = clampN(Math.round(Number(c.w)) || d[0], 1, 4);
+    const b = bp();
+    const w = b.wide ? clampN(Math.round(Number(c.dw)) || WIDE_SPAN[legacy], 1, 12) : legacy;
+    return [w, clampN(Math.round(Number(c.h)) || d[1], 1, 8)];
+  }
+
+  const overlaps = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+  // Anything that overlaps something already settled is pushed below it
+  function settle(items, fixedId) {
+    const fixed = items.find((i) => i.id === fixedId);
+    const rest = items.filter((i) => i !== fixed).sort((a, c) => a.y - c.y || a.x - c.x);
+    const done = fixed ? [fixed] : [];
+    for (const it of rest) {
+      let hit;
+      while ((hit = done.filter((o) => overlaps(o, it))).length) it.y = Math.max(...hit.map((o) => o.y + o.h));
+      done.push(it);
+    }
+    return items;
+  }
+
+  function firstFit(done, it, cols, startY) {
+    for (let y = startY; y < 1000; y++) {
+      for (let x = 0; x + it.w <= cols; x++) {
+        if (!done.some((o) => overlaps(o, { x, y, w: it.w, h: it.h }))) return { x, y };
+      }
+    }
+    return { x: 0, y: startY };
+  }
+
+  // Where every shown tile sits: saved spots first, tiles without one packed in after them
+  function computeLayout(list) {
+    const b = bp();
+    const items = list.map((wd) => {
+      const [w0, h] = tileSize(wd);
+      const w = Math.min(w0, b.cols);
+      const c = wd.config || {};
+      const has = Number.isInteger(c[b.kx]) && Number.isInteger(c[b.ky]);
+      return { id: wd.id, w, h, x: has ? clampN(c[b.kx], 0, b.cols - w) : null, y: has ? Math.max(0, c[b.ky]) : null };
+    });
+    const placed = items.filter((i) => i.x !== null).sort((a, c) => a.y - c.y || a.x - c.x);
+    const done = [];
+    for (const it of placed) {
+      let hit;
+      while ((hit = done.filter((o) => overlaps(o, it))).length) it.y = Math.max(...hit.map((o) => o.y + o.h));
+      done.push(it);
+    }
+    const startY = done.length ? Math.max(...done.map((o) => o.y + o.h)) : 0;
+    for (const it of items.filter((i) => i.x === null)) {
+      const spot = firstFit(done, it, b.cols, startY);
+      it.x = spot.x;
+      it.y = spot.y;
+      done.push(it);
+    }
+    return items;
+  }
+
+  function bottomOf(items) {
+    return items.length ? Math.max(...items.map((i) => i.y + i.h)) : 0;
+  }
+
+  function setGeom(el, g) {
+    el.style.setProperty('--x', String(g.x));
+    el.style.setProperty('--y', String(g.y));
+    el.style.setProperty('--w', String(g.w));
+    el.style.setProperty('--h', String(g.h));
+  }
+
+  // Put the layout on screen. Tiles that moved glide to their new spot.
+  function applyLayout(items, skipId) {
+    const grid = $('grid');
+    const els = [...grid.querySelectorAll('.tile')];
+    const first = new Map(els.map((el) => [el, el.getBoundingClientRect()]));
+    for (const g of items) {
+      const el = state.cards.get(g.id);
+      if (el) setGeom(el, g);
+    }
+    state.geo = new Map(items.map((g) => [g.id, { ...g }]));
+    placeAddTile(items);
+    for (const el of els) {
+      if (el.dataset.id === skipId) continue;
+      const a = first.get(el);
+      const c = el.getBoundingClientRect();
+      const dx = a.left - c.left;
+      const dy = a.top - c.top;
+      if ((dx || dy) && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.2,.8,.2,1)' });
+      }
+    }
+  }
+
+  function placeAddTile(items) {
+    const grid = $('grid');
+    const add = grid.querySelector('.add-tile');
+    const rows = bottomOf(items);
+    if (add) {
+      add.style.setProperty('--x', '0');
+      add.style.setProperty('--y', String(rows));
+      add.style.setProperty('--w', String(bp().wide ? 3 : 2));
+    }
+    // Room below the last tile, so one can be dropped at the very bottom
+    grid.style.minHeight = state.studio ? `${(rows + 3) * (parseFloat(getComputedStyle(grid).gridAutoRows) + parseFloat(getComputedStyle(grid).rowGap || 10))}px` : '';
+  }
+
+  // Remember the on-screen spots in the tiles, so they get saved
+  function commitLayout(items) {
+    const b = bp();
+    for (const g of items) {
+      const wd = state.widgets.find((x) => x.id === g.id);
+      if (!wd) continue;
+      wd.config = { ...(wd.config || {}), [b.kx]: g.x, [b.ky]: g.y, [b.kw]: g.w, h: g.h };
+    }
+    // Keep the saved order the same as the order on the canvas
+    const order = [...items].sort((p, q) => p.y - q.y || p.x - q.x).map((g) => g.id);
+    const shown = new Set(order);
+    const byId = new Map(state.widgets.map((w) => [w.id, w]));
+    const queue = order.map((id) => byId.get(id)).filter(Boolean);
+    state.widgets = state.widgets.map((w) => (shown.has(w.id) ? queue.shift() : w));
   }
 
   // Numbers count up to their new value instead of jumping
@@ -610,6 +738,9 @@
       return;
     }
 
+    const layout = computeLayout(visible);
+    state.geo = new Map(layout.map((g) => [g.id, { ...g }]));
+
     visible.forEach((widget, i) => {
       const card = buildWidgetCard(widget);
       card.style.setProperty('--i', String(Math.min(i, 14)));
@@ -626,10 +757,11 @@
         t('add_widget_btn'),
       ),
     );
+    placeAddTile(layout);
   }
 
   function buildWidgetCard(widget) {
-    const [w, hgt] = tileSize(widget);
+    const g = (state.geo && state.geo.get(widget.id)) || { x: 0, y: 0, w: tileSize(widget)[0], h: tileSize(widget)[1] };
     const cfg = widget.config || {};
     const icon = cfg.icon && ICON_PATHS[cfg.icon] ? cfg.icon : DEFAULT_ICON[widget.type] || 'dot';
     const decor = DECOR_GADGETS.includes(widget.type);
@@ -662,8 +794,8 @@
         'data-type': widget.type,
         'data-fit': cfg.fit || 'cover',
         'data-bare': cfg.bare ? '1' : '0',
-        'data-w': String(w),
-        style: `--w:${w};--h:${hgt};${cfg.accent ? `--tile-accent:${cfg.accent};` : ''}`,
+        'data-w': String(g.w),
+        style: `--x:${g.x};--y:${g.y};--w:${g.w};--h:${g.h};${cfg.accent ? `--tile-accent:${cfg.accent};` : ''}`,
       },
       top,
       widgetBody(widget, icon),
@@ -1071,7 +1203,34 @@
 
   // ---------- Edit mode: drag to reorder, drag the corner to resize ----------
 
+  // Widgets only: hides everything except the tiles
+  function setFocus(on) {
+    const wanted = Boolean(on);
+    if (wanted) {
+      setStudio(false);
+      setView('dash');
+    }
+    document.body.classList.toggle('focus', wanted);
+    try { localStorage.setItem('iotdeck-focus', wanted ? '1' : '0'); } catch {}
+    window.scrollTo(0, 0);
+  }
+
+  function tidyLayout() {
+    if (!state.geo || !state.geo.size) return;
+    const items = [...state.geo.values()].map((g) => ({ ...g })).sort((a, c) => a.y - c.y || a.x - c.x);
+    const done = [];
+    for (const it of items) {
+      while (it.y > 0 && !done.some((o) => overlaps(o, { ...it, y: it.y - 1 }))) it.y--;
+      done.push(it);
+    }
+    applyLayout(items);
+    commitLayout(items);
+    queueLayoutSave();
+    buzz(10);
+  }
+
   function setStudio(on) {
+    const wasOn = state.studio;
     state.studio = Boolean(on);
     $('grid').classList.toggle('editing', state.studio);
     $('studio-bar').classList.toggle('hidden', !state.studio);
@@ -1080,7 +1239,8 @@
       if (el) el.setAttribute('aria-pressed', String(state.studio));
     }
     if (state.studio) buzz(10);
-    else saveLayoutNow();
+    else if (wasOn) saveLayoutNow();
+    if (state.geo && state.geo.size) placeAddTile([...state.geo.values()]);
   }
 
   let layoutTimer = null;
@@ -1091,9 +1251,15 @@
 
   async function saveLayoutNow() {
     clearTimeout(layoutTimer);
+    if (state.geo && state.geo.size) commitLayout([...state.geo.values()]);
+    const b = bp();
     const items = state.widgets.map((w, i) => {
-      const [cw, ch] = tileSize(w);
-      return { id: w.id, position: i, w: cw, h: ch };
+      const c = w.config || {};
+      const item = { id: w.id, position: i, h: tileSize(w)[1] };
+      if (Number.isInteger(c.w)) item.w = c.w;
+      if (Number.isInteger(c.dw)) item.dw = c.dw;
+      for (const k of ['x', 'y', 'dx', 'dy']) if (Number.isInteger(c[k])) item[k] = c[k];
+      return item;
     });
     if (!items.length) return;
     try {
@@ -1101,15 +1267,7 @@
     } catch (err) {
       toast(err.message, 'error');
     }
-  }
-
-  // Put the visible tiles into the order they now have on screen
-  function adoptDomOrder() {
-    const ids = [...$('grid').querySelectorAll('.tile')].map((el) => el.dataset.id);
-    const shown = new Set(ids);
-    const byId = new Map(state.widgets.map((w) => [w.id, w]));
-    const queue = ids.map((id) => byId.get(id)).filter(Boolean);
-    state.widgets = state.widgets.map((w) => (shown.has(w.id) ? queue.shift() : w));
+    return b;
   }
 
   let activeDrag = null;
@@ -1147,6 +1305,11 @@
       grab.x = startX - r.left;
       grab.y = startY - r.top;
       card.classList.add('dragging');
+      base = [...state.geo.values()].map((g) => ({ ...g }));
+      cardW = r.width;
+      ghost = h('div', { class: 'slot-ghost', 'aria-hidden': 'true' });
+      setGeom(ghost, state.geo.get(widget.id));
+      grid.append(ghost);
       try { card.setPointerCapture(pointerId); } catch {}
       buzz(15);
       activeDrag = { card, move };
@@ -1158,6 +1321,25 @@
       card.style.transform = `translate(${px - grab.x - natural.left}px, ${py - grab.y - natural.top}px)`;
     };
 
+    // The spot, in grid cells, under the tile's top-left corner
+    let base = null;
+    let ghost = null;
+    let cardW = 0;
+    const cell = (px, py) => {
+      const cs = getComputedStyle(grid);
+      const gap = parseFloat(cs.columnGap) || 10;
+      const row = parseFloat(cs.gridAutoRows) || 86;
+      const b = bp();
+      const gr = grid.getBoundingClientRect();
+      const colW = (gr.width - gap * (b.cols - 1)) / b.cols;
+      const stepX = colW + gap;
+      const stepY = row + gap;
+      const rtl = document.documentElement.dir === 'rtl';
+      const me = base.find((g) => g.id === widget.id);
+      const fx = rtl ? (gr.right - (px - grab.x + cardW)) / stepX : (px - grab.x - gr.left) / stepX;
+      return { x: clampN(Math.round(fx), 0, b.cols - me.w), y: clampN(Math.round((py - grab.y - gr.top) / stepY), 0, 400) };
+    };
+
     function move(ev) {
       if (ev.pointerId !== pointerId) return;
       if (!started) {
@@ -1167,31 +1349,29 @@
         if (!started) return;
       }
       ev.preventDefault();
-      place(ev.clientX, ev.clientY);
       // Near the top or bottom edge, scroll the page
       if (ev.clientY < 90) window.scrollBy(0, -14);
       else if (ev.clientY > window.innerHeight - 110) window.scrollBy(0, 14);
 
-      // Which tile is under the finger? Swap places with it
-      const under = document.elementsFromPoint(ev.clientX, ev.clientY).find((el) => el.classList && el.classList.contains('tile') && el !== card);
-      if (!under) return;
-      const tiles = [...grid.querySelectorAll('.tile')];
-      const first = new Map(tiles.map((el) => [el, el.getBoundingClientRect()]));
-      const before = tiles.indexOf(card) < tiles.indexOf(under);
-      grid.insertBefore(card, before ? under.nextSibling : under);
-      for (const el of tiles) {
-        if (el === card) continue;
-        const a = first.get(el);
-        const b = el.getBoundingClientRect();
-        const dx = a.left - b.left;
-        const dy = a.top - b.top;
-        if (dx || dy) el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.2,.8,.2,1)' });
+      const at = cell(ev.clientX, ev.clientY);
+      const me = state.geo.get(widget.id);
+      if (at.x !== me.x || at.y !== me.y) {
+        const next = base.map((g) => ({ ...g }));
+        const moved = next.find((g) => g.id === widget.id);
+        moved.x = at.x;
+        moved.y = at.y;
+        settle(next, widget.id);
+        applyLayout(next, widget.id);
+        buzz(5);
       }
+      const g = state.geo.get(widget.id);
+      if (ghost) setGeom(ghost, g);
       place(ev.clientX, ev.clientY);
     }
 
     function cancel() {
       clearTimeout(holdTimer);
+      if (ghost) ghost.remove();
       cleanup();
     }
 
@@ -1221,7 +1401,8 @@
         { duration: 240, easing: 'cubic-bezier(.2,.8,.2,1)' },
       );
       card.style.transform = '';
-      adoptDomOrder();
+      if (ghost) ghost.remove();
+      commitLayout([...state.geo.values()]);
       queueLayoutSave();
     }
 
@@ -1238,14 +1419,14 @@
     const grid = $('grid');
     const rtl = document.documentElement.dir === 'rtl';
     const cs = getComputedStyle(grid);
-    const cols = cs.gridTemplateColumns.split(' ').length;
+    const b = bp();
     const gap = parseFloat(cs.columnGap) || 10;
     const row = parseFloat(cs.gridAutoRows) || 86;
-    const k = parseFloat(cs.getPropertyValue('--k')) || 1;
-    const colW = (grid.clientWidth - gap * (cols - 1)) / cols;
-    const stepX = (colW + gap) * k;
+    const colW = (grid.clientWidth - gap * (b.cols - 1)) / b.cols;
+    const stepX = colW + gap;
     const stepY = row + gap;
-    const [w0, h0] = tileSize(widget);
+    const base = [...state.geo.values()].map((g) => ({ ...g }));
+    const start = base.find((g) => g.id === widget.id);
     const x0 = event.clientX;
     const y0 = event.clientY;
     const pointerId = event.pointerId;
@@ -1257,13 +1438,17 @@
       if (ev.pointerId !== pointerId) return;
       ev.preventDefault();
       const dx = (rtl ? -1 : 1) * (ev.clientX - x0);
-      const w = Math.min(4, Math.max(1, w0 + Math.round(dx / stepX)));
-      const hgt = Math.min(4, Math.max(1, h0 + Math.round((ev.clientY - y0) / stepY)));
-      if (w !== tileSize(widget)[0] || hgt !== tileSize(widget)[1]) {
-        widget.config = { ...(widget.config || {}), w, h: hgt };
-        card.style.setProperty('--w', String(w));
+      const w = clampN(start.w + Math.round(dx / stepX), 1, b.cols - start.x);
+      const hgt = clampN(start.h + Math.round((ev.clientY - y0) / stepY), 1, 8);
+      const cur = state.geo.get(widget.id);
+      if (w !== cur.w || hgt !== cur.h) {
+        const next = base.map((g) => ({ ...g }));
+        const me = next.find((g) => g.id === widget.id);
+        me.w = w;
+        me.h = hgt;
+        settle(next, widget.id);
+        applyLayout(next, widget.id);
         card.dataset.w = String(w);
-        card.style.setProperty('--h', String(hgt));
         buzz(6);
       }
     };
@@ -1274,6 +1459,7 @@
       document.removeEventListener('pointercancel', up);
       card.classList.remove('resizing');
       activeDrag = null;
+      commitLayout([...state.geo.values()]);
       queueLayoutSave();
     };
     document.addEventListener('pointermove', move, { passive: false });
@@ -2256,6 +2442,12 @@
 
     // Studio: layout edit mode, and the phone tab bar
     $('edit-layout').addEventListener('click', () => setStudio(!state.studio));
+    for (const id of ['focus-on', 'focus-on-m', 'focus-app']) $(id).addEventListener('click', () => setFocus(true));
+    $('focus-exit').addEventListener('click', () => setFocus(false));
+    $('studio-tidy').addEventListener('click', tidyLayout);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('focus')) setFocus(false); });
+    WIDE.addEventListener('change', () => { if (state.widgets.length) renderGrid(); });
+    try { if (localStorage.getItem('iotdeck-focus') === '1') setFocus(true); } catch {}
     $('studio-done').addEventListener('click', () => setStudio(false));
     $('tab-edit').addEventListener('click', () => { setView('dash'); setStudio(!state.studio); });
     $('tab-add').addEventListener('click', () => { setView('dash'); openWidgetModal(); });
