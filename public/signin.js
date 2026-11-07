@@ -56,13 +56,76 @@
     }
   });
 
+  // Forgot / reset password
+  const forgotBox = document.getElementById('forgot-box');
+  const resetBox = document.getElementById('reset-box');
+  function showOnly(box) {
+    form.hidden = !!box;
+    document.querySelector('.tabs').hidden = !!box;
+    document.getElementById('google').hidden = !!box;
+    document.querySelector('.divider').hidden = !!box;
+    forgotBox.hidden = box !== forgotBox;
+    resetBox.hidden = box !== resetBox;
+  }
+  const post = async (url, payload) => {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(payload),
+    });
+    return { res, body: await res.json().catch(() => ({})) };
+  };
+  document.getElementById('forgot-link').addEventListener('click', () => {
+    document.getElementById('forgot-email').value = document.getElementById('email').value;
+    document.getElementById('forgot-msg').textContent = '';
+    showOnly(forgotBox);
+  });
+  document.getElementById('forgot-back').addEventListener('click', () => showOnly(null));
+  const forgotSend = document.getElementById('forgot-send');
+  forgotSend.addEventListener('click', async () => {
+    const msg = document.getElementById('forgot-msg');
+    const email = document.getElementById('forgot-email').value.trim();
+    if (!email) { msg.textContent = t('err_fill'); return; }
+    forgotSend.disabled = true;
+    try {
+      const { res, body } = await post('/api/auth/forgot', { email });
+      msg.textContent = res.ok ? t('forgot_sent') : body.error || t('err_generic');
+    } catch {
+      msg.textContent = t('err_network');
+    } finally {
+      setTimeout(() => { forgotSend.disabled = false; }, 15000);
+    }
+  });
+  const resetToken = new URLSearchParams(location.search).get('reset');
+  if (resetToken) {
+    history.replaceState(null, '', '/signin');
+    showOnly(resetBox);
+    const save = document.getElementById('reset-save');
+    save.addEventListener('click', async () => {
+      const msg = document.getElementById('reset-msg');
+      const pw = document.getElementById('reset-password').value;
+      if (pw.length < 10) { msg.textContent = t('err_pw_short'); return; }
+      save.disabled = true;
+      try {
+        const { res, body } = await post('/api/auth/reset', { token: resetToken, password: pw });
+        if (res.ok) { location.replace('/dashboard'); return; }
+        msg.textContent = body.error || t('err_generic');
+      } catch {
+        msg.textContent = t('err_network');
+      } finally {
+        save.disabled = false;
+      }
+    });
+  }
+
   // Coming back from an expired or already-used confirmation link
   if (new URLSearchParams(location.search).get('verify') === 'invalid') {
     errorEl.textContent = t('verify_invalid');
   }
 
   // If already signed in, go straight to the dashboard
-  fetch('/api/me', { credentials: 'same-origin' })
+  if (!resetToken) fetch('/api/me', { credentials: 'same-origin' })
     .then((r) => { if (r.ok) location.replace('/dashboard'); })
     .catch(() => {});
 

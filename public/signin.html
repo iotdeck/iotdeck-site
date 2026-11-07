@@ -50,7 +50,30 @@
         </div>
         <p class="error" id="error" role="alert"></p>
         <button class="btn btn-primary btn-block" id="submit" type="submit" data-i18n="submit_signin">تسجيل الدخول</button>
+        <button class="btn btn-ghost btn-block" id="forgot-link" type="button" data-i18n="forgot_link">نسيت كلمة المرور؟</button>
       </form>
+
+      <div class="verify-box" id="forgot-box" hidden>
+        <h2 data-i18n="forgot_title">إعادة تعيين كلمة المرور</h2>
+        <p data-i18n="forgot_text">أدخل بريدك الإلكتروني وسنرسل لك رابطًا لاختيار كلمة مرور جديدة.</p>
+        <div class="field">
+          <label for="forgot-email" data-i18n="email_label">البريد الإلكتروني</label>
+          <input class="input" id="forgot-email" type="email" autocomplete="email" placeholder="you@example.com">
+        </div>
+        <p class="error" id="forgot-msg" role="alert"></p>
+        <button class="btn btn-primary btn-block" id="forgot-send" type="button" data-i18n="forgot_send">إرسال الرابط</button>
+        <button class="btn btn-ghost btn-block" id="forgot-back" type="button" data-i18n="verify_back">العودة</button>
+      </div>
+
+      <div class="verify-box" id="reset-box" hidden>
+        <h2 data-i18n="reset_title">اختر كلمة مرور جديدة</h2>
+        <div class="field">
+          <label for="reset-password" data-i18n="password_label">كلمة المرور</label>
+          <input class="input" id="reset-password" type="password" autocomplete="new-password" minlength="10" data-i18n-placeholder="password_ph" placeholder="10 أحرف على الأقل">
+        </div>
+        <p class="error" id="reset-msg" role="alert"></p>
+        <button class="btn btn-primary btn-block" id="reset-save" type="button" data-i18n="reset_save">حفظ ومتابعة</button>
+      </div>
 
       <div class="verify-box" id="verify-box" hidden>
         <h2 id="verify-title" data-i18n="verify_title">تحقق من بريدك الإلكتروني</h2>
