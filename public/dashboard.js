@@ -138,8 +138,6 @@
   }
 
   function closeModal(modal) {
-    // Closing the look popup without saving drops the preview
-    if (modal.id === 'theme-modal' && savedTheme) applyTheme(savedTheme);
     modal.classList.remove('open');
   }
 
@@ -152,7 +150,11 @@
     btn.addEventListener('click', () => closeModal(btn.closest('.modal-backdrop')));
   });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') document.querySelectorAll('.modal-backdrop.open').forEach(closeModal);
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.modal-backdrop.open').forEach(closeModal);
+      const look = $('look');
+      if (look && !look.hidden) closeLook(false);
+    }
   });
 
   // ---------- Rendering: greeting, sidebar, stats, filters ----------
@@ -188,7 +190,7 @@
         h(
           'button',
           { class: `chip${online ? ' online' : ''}${state.filter === device.id ? ' selected' : ''}`, type: 'button', onclick: () => switchDevice(device.id) },
-          h('span', { class: 'chip-av' }, (device.name || '?').trim().slice(0, 1).toUpperCase(), h('span', { class: 'chip-dot' })),
+          h('span', { class: 'chip-av has-board' }, boardImg(device.board), h('span', { class: 'chip-dot' })),
           h('span', { class: 'chip-name', text: device.name }),
         ),
       );
@@ -232,11 +234,12 @@
             }
           },
         },
-        h('span', { class: `status-dot ${status === 'live' ? 'online pulse' : status === 'quiet' ? 'online' : ''}`, 'aria-hidden': 'true' }),
+        h('span', { class: 'dev-thumb' }, boardImg(device.board), h('span', { class: `status-dot ${status === 'live' ? 'online pulse' : status === 'quiet' ? 'online' : ''}`, 'aria-hidden': 'true' })),
         h(
           'span',
           { class: 'meta' },
           h('span', { class: 'name', text: device.name }),
+          h('span', { class: 'board-line', text: boardById(device.board).name }),
           // Every board uses the same line: its status, then the time of its last value (a dash if it has sent none)
           h('span', { class: 'sub', text: statusLine(device, status) }),
           selected ? h('span', { class: 'viewing', text: t('viewing_now') }) : null,
@@ -316,7 +319,7 @@
   // ---------- Device pages and look ----------
 
   const THEME_COLORS = ['#7c8cff', '#3ee3b5', '#ffb86b', '#ff6b8a', '#5ec8ff', '#c792ea'];
-  const THEME_BACKGROUNDS = ['night', 'aurora', 'ocean', 'ember', 'forest'];
+  const THEME_BACKGROUNDS = ['night', 'aurora', 'ocean', 'ember', 'forest', 'dusk', 'sunset', 'graphite', 'matrix'];
   let savedTheme = null;
   let draftTheme = null;
 
@@ -327,6 +330,7 @@
 
   async function switchDevice(deviceId) {
     if (state.studio) setStudio(false);
+    if (!$('look').hidden) closeLook(true);
     state.filter = deviceId || null;
     state.focusPage = Boolean(deviceId);
     try {
@@ -336,7 +340,7 @@
     if (deviceId) await loadTheme();
     else {
       savedTheme = null;
-      applyTheme({ accent: THEME_COLORS[0], background: 'night' });
+      applyTheme(THEME_DEFAULT);
     }
     renderAll();
     window.scrollTo({ top: 0 });
@@ -352,17 +356,45 @@
     if (view !== 'dash' && state.studio) setStudio(false);
   }
 
-  function applyTheme(theme) {
-    document.body.dataset.bg = theme.background;
-    document.body.style.setProperty(
+  const THEME_DEFAULT = {
+    accent: '#7c8cff', accent2: '', background: 'night', v: 0, tiles: 'glass', corners: 'round', dim: 0.6,
+    fx: 'none', font: 'tech', density: 'cozy', glow: true, blur: 14, hero: 'banner',
+  };
+  const LOOK_COLORS = ['#7c8cff', '#3ee3b5', '#ffb86b', '#ff6b8a', '#5ec8ff', '#c792ea', '#7dff9b', '#ff8a5c', '#f2d95c', '#e8ecf5', '#ff4f8b', '#4f8bff'];
+  const LOOK_PRESETS = [
+    { id: 'lab', t: { accent: '#3ee3b5', accent2: '#7c8cff', background: 'graphite', tiles: 'neon', corners: 'soft', fx: 'grid', font: 'tech', glow: true } },
+    { id: 'aurora', t: { accent: '#5ec8ff', accent2: '#c792ea', background: 'aurora', tiles: 'glass', corners: 'round', fx: 'drift', font: 'tech', glow: true } },
+    { id: 'terminal', t: { accent: '#7dff9b', accent2: '', background: 'matrix', tiles: 'outline', corners: 'sharp', fx: 'dots', font: 'mono', glow: false } },
+    { id: 'sunset', t: { accent: '#ff8a5c', accent2: '#ff4f8b', background: 'sunset', tiles: 'glass', corners: 'round', fx: 'grain', font: 'tech', glow: true } },
+    { id: 'blueprint', t: { accent: '#5ec8ff', accent2: '', background: 'ocean', tiles: 'outline', corners: 'sharp', fx: 'grid', font: 'mono', glow: false } },
+    { id: 'calm', t: { accent: '#a6e3c8', accent2: '', background: 'forest', tiles: 'plain', corners: 'soft', fx: 'grain', font: 'clean', density: 'airy', glow: false } },
+  ];
+  const LOOK_TABS = ['themes', 'colors', 'surface', 'backdrop', 'type'];
+  let lookTab = 'themes';
+
+  function applyTheme(input) {
+    const theme = { ...THEME_DEFAULT, ...(input || {}) };
+    const body = document.body;
+    body.dataset.bg = theme.background;
+    body.style.setProperty(
       '--custom-bg',
-      theme.background === 'custom' ? `url("/api/devices/${state.filter}/background?v=${theme.v || 0}")` : 'none',
+      theme.background === 'custom' && state.filter ? `url("/api/devices/${state.filter}/background?v=${theme.v || 0}")` : 'none',
     );
-    document.body.dataset.tiles = theme.tiles || 'glass';
-    document.body.dataset.corners = theme.corners || 'round';
-    document.body.style.setProperty('--dim', String(typeof theme.dim === 'number' ? theme.dim : 0.6));
-    document.documentElement.style.setProperty('--accent', theme.accent);
-    document.documentElement.style.setProperty('--accent-glow', `${theme.accent}59`);
+    body.dataset.tiles = theme.tiles;
+    body.dataset.corners = theme.corners;
+    body.dataset.fx = theme.fx;
+    body.dataset.font = theme.font;
+    body.dataset.density = theme.density;
+    body.dataset.glow = theme.glow === false ? '0' : '1';
+    body.dataset.hero = theme.hero;
+    body.dataset.a2 = theme.accent2 ? '1' : '0';
+    body.style.setProperty('--dim', String(theme.dim));
+    body.style.setProperty('--blur', `${theme.blur}px`);
+    const root = document.documentElement.style;
+    root.setProperty('--accent', theme.accent);
+    root.setProperty('--accent-glow', `${theme.accent}59`);
+    root.setProperty('--accent-2', theme.accent2 || theme.accent);
+    renderHero();
   }
 
   async function loadTheme() {
@@ -376,51 +408,140 @@
   }
 
   function openThemeModal() {
-    draftTheme = { ...(savedTheme || { accent: THEME_COLORS[0], background: 'night' }) };
-    renderThemeModal();
-    openModal('theme-modal');
+    draftTheme = { ...THEME_DEFAULT, ...(savedTheme || {}) };
+    $('look').hidden = false;
+    document.body.classList.add('look-open');
+    requestAnimationFrame(() => $('look').classList.add('open'));
+    renderLook();
   }
 
-  function renderThemeModal() {
-    $('theme-accents').replaceChildren(...THEME_COLORS.map((color) => h('button', {
-      class: 'swatch',
-      type: 'button',
-      role: 'radio',
-      'aria-checked': String(color === draftTheme.accent),
-      'aria-label': color,
-      style: `--swatch:${color}`,
-      onclick: () => {
-        draftTheme.accent = color;
-        applyTheme(draftTheme);
-        renderThemeModal();
-      },
-    })));
-    const seg = (key, values) => values.map((value) => h('button', {
-      class: 'seg-btn', type: 'button', role: 'radio',
-      'aria-checked': String((draftTheme[key] || values[0]) === value),
-      text: t(`${key}_${value}`),
-      onclick: () => { draftTheme[key] = value; applyTheme(draftTheme); renderThemeModal(); },
-    }));
-    $('theme-tiles').replaceChildren(...seg('tiles', ['glass', 'solid', 'outline']));
-    $('theme-corners').replaceChildren(...seg('corners', ['round', 'soft', 'sharp']));
-    $('theme-dim-field').hidden = draftTheme.background !== 'custom';
-    $('theme-dim').value = String(typeof draftTheme.dim === 'number' ? draftTheme.dim : 0.6);
-    $('theme-bgs').replaceChildren(...THEME_BACKGROUNDS.map((bg) => h(
+  function closeLook(keep) {
+    if (!keep && savedTheme) applyTheme(savedTheme);
+    else if (!keep) applyTheme(THEME_DEFAULT);
+    $('look').classList.remove('open');
+    document.body.classList.remove('look-open');
+    setTimeout(() => { if (!$('look').classList.contains('open')) $('look').hidden = true; }, 260);
+  }
+
+  function setDraft(patch) {
+    Object.assign(draftTheme, patch);
+    applyTheme(draftTheme);
+    renderLook();
+  }
+
+  function lookSection(title, ...children) {
+    return h('section', { class: 'look-sec' }, h('h3', { text: title }), ...children);
+  }
+
+  function lookChoices(key, values, label, preview) {
+    return h('div', { class: 'look-choices', role: 'radiogroup' }, ...values.map((value) => h(
       'button',
       {
-        class: 'gadget-card',
-        type: 'button',
-        role: 'radio',
-        'aria-checked': String(bg === draftTheme.background),
-        onclick: () => {
-          draftTheme.background = bg;
-          applyTheme(draftTheme);
-          renderThemeModal();
-        },
+        class: 'look-choice', type: 'button', role: 'radio',
+        'aria-checked': String(draftTheme[key] === value),
+        onclick: () => setDraft({ [key]: value }),
       },
-      h('span', { class: 'bg-preview', 'data-bg': bg, 'aria-hidden': 'true' }),
-      h('span', { class: 'gadget-name', text: t(`bg_${bg}`) }),
+      preview ? preview(value) : null,
+      h('span', { text: label(value) }),
     )));
+  }
+
+  function colorRow(key, allowNone) {
+    const current = draftTheme[key];
+    const items = [];
+    if (allowNone) {
+      items.push(h('button', {
+        class: 'swatch none', type: 'button', role: 'radio', 'aria-checked': String(!current),
+        'aria-label': t('look_none'), title: t('look_none'), onclick: () => setDraft({ [key]: '' }),
+      }));
+    }
+    for (const color of LOOK_COLORS) {
+      items.push(h('button', {
+        class: 'swatch', type: 'button', role: 'radio', 'aria-checked': String(color === current),
+        'aria-label': color, style: `--swatch:${color}`, onclick: () => setDraft({ [key]: color }),
+      }));
+    }
+    const custom = h('input', {
+      type: 'color', class: 'swatch-custom', value: current || '#7c8cff', 'aria-label': t('look_custom_color'), title: t('look_custom_color'),
+      oninput: (e) => { draftTheme[key] = e.target.value; applyTheme(draftTheme); },
+      onchange: () => renderLook(),
+    });
+    items.push(custom);
+    return h('div', { class: 'swatches', role: 'radiogroup' }, ...items);
+  }
+
+  function lookToggle(label, checked, onchange) {
+    return h('label', { class: 'look-switch' },
+      h('span', { text: label }),
+      h('input', { type: 'checkbox', checked: checked ? true : null, onchange: (e) => onchange(e.target.checked) }),
+      h('i', { 'aria-hidden': 'true' }));
+  }
+
+  function lookRange(label, min, max, step, value, onchange) {
+    const out = h('output', { text: String(value) });
+    return h('label', { class: 'look-range' },
+      h('span', { class: 'look-range-top' }, h('span', { text: label }), out),
+      h('input', { type: 'range', min, max, step, value: String(value), oninput: (e) => { out.textContent = e.target.value; onchange(Number(e.target.value)); } }));
+  }
+
+  function renderLook() {
+    $('look-title').textContent = t('customize');
+    $('look-tabs').replaceChildren(...LOOK_TABS.map((tab) => h('button', {
+      class: 'look-tab', type: 'button', role: 'tab', 'aria-selected': String(tab === lookTab),
+      text: t(`look_t_${tab}`), onclick: () => { lookTab = tab; renderLook(); },
+    })));
+    const body = $('look-body');
+    const keep = body.scrollTop;
+    const parts = [];
+    if (lookTab === 'themes') {
+      parts.push(h('p', { class: 'look-lead', text: t('look_presets_lead') }));
+      parts.push(h('div', { class: 'preset-grid' }, ...LOOK_PRESETS.map((p) => h(
+        'button',
+        {
+          class: 'preset', type: 'button', style: `--pa:${p.t.accent};--pb:${p.t.accent2 || p.t.accent}`,
+          onclick: () => setDraft({ ...THEME_DEFAULT, ...p.t, v: draftTheme.v }),
+        },
+        h('span', { class: 'preset-art', 'data-bg': p.t.background, 'data-tiles': p.t.tiles, 'data-corners': p.t.corners },
+          h('i'), h('i'), h('i')),
+        h('span', { class: 'preset-name', text: t(`preset_${p.id}`) }),
+      ))));
+    }
+    if (lookTab === 'colors') {
+      parts.push(lookSection(t('look_accent'), colorRow('accent', false)));
+      parts.push(lookSection(t('look_accent2'), colorRow('accent2', true)));
+      parts.push(lookSection(t('look_glow'), lookToggle(t('look_glow_on'), draftTheme.glow !== false, (v) => setDraft({ glow: v }))));
+    }
+    if (lookTab === 'surface') {
+      parts.push(lookSection(t('theme_tiles'), lookChoices('tiles', ['glass', 'solid', 'outline', 'neon', 'plain'], (v) => t(`tiles_${v}`), (v) => h('span', { class: 'mini-tile', 'data-s': v }))));
+      parts.push(lookSection(t('theme_corners'), lookChoices('corners', ['round', 'soft', 'sharp'], (v) => t(`corners_${v}`), (v) => h('span', { class: 'mini-corner', 'data-c': v }))));
+      parts.push(lookSection(t('look_blur'), lookRange(t('look_blur_hint'), 0, 30, 1, draftTheme.blur, (v) => { draftTheme.blur = v; applyTheme(draftTheme); })));
+      parts.push(lookSection(t('look_density'), lookChoices('density', ['compact', 'cozy', 'airy'], (v) => t(`density_${v}`))));
+    }
+    if (lookTab === 'backdrop') {
+      const bgs = [...THEME_BACKGROUNDS];
+      parts.push(lookSection(t('theme_bg'), h('div', { class: 'bg-grid', role: 'radiogroup' }, ...bgs.map((bg) => h(
+        'button',
+        { class: 'bg-card', type: 'button', role: 'radio', 'aria-checked': String(bg === draftTheme.background), onclick: () => setDraft({ background: bg }) },
+        h('span', { class: 'bg-preview', 'data-bg': bg, 'aria-hidden': 'true' }),
+        h('span', { text: t(`bg_${bg}`) }),
+      )))));
+      parts.push(lookSection(t('look_fx'), lookChoices('fx', ['none', 'grid', 'dots', 'grain', 'drift'], (v) => t(`fx_${v}`), (v) => h('span', { class: 'mini-fx', 'data-f': v }))));
+      const hasImg = draftTheme.background === 'custom';
+      parts.push(lookSection(
+        t('theme_image'),
+        h('p', { class: 'look-lead', text: t('theme_image_hint') }),
+        h('div', { class: 'actions' },
+          h('label', { class: 'btn', for: 'theme-image', text: t('theme_image_pick') }),
+          hasImg ? h('button', { type: 'button', class: 'btn btn-ghost', onclick: removeDeviceBackground, text: t('theme_image_remove') }) : null),
+        hasImg ? lookRange(t('theme_dim'), 0.2, 0.9, 0.05, draftTheme.dim, (v) => { draftTheme.dim = v; applyTheme(draftTheme); }) : null,
+      ));
+    }
+    if (lookTab === 'type') {
+      parts.push(lookSection(t('look_font'), lookChoices('font', ['tech', 'clean', 'mono'], (v) => t(`font_${v}`), (v) => h('span', { class: 'mini-font', 'data-ft': v, text: 'Aa 24' }))));
+      parts.push(lookSection(t('look_hero'), lookChoices('hero', ['banner', 'compact', 'off'], (v) => t(`hero_${v}`))));
+    }
+    body.replaceChildren(...parts);
+    body.scrollTop = keep;
   }
 
   async function saveDeviceTheme() {
@@ -428,14 +549,14 @@
       const { theme } = await api(`/api/devices/${state.filter}/theme`, { method: 'PUT', body: JSON.stringify(draftTheme) });
       savedTheme = theme;
       applyTheme(theme);
-      closeModal($('theme-modal'));
+      closeLook(true);
       toast(t('theme_saved'));
     } catch (err) {
       toast(err.message, 'error');
     }
   }
 
-  // Uploads are saved right away, like the image itself. Accent and preset changes still need Save.
+  // Uploads are saved right away, like the image itself. Everything else waits for Save.
   async function uploadDeviceBackground(event) {
     const file = event.target.files[0];
     event.target.value = '';
@@ -455,9 +576,9 @@
         body: file,
       });
       savedTheme = theme;
-      draftTheme = { ...theme };
-      applyTheme(theme);
-      renderThemeModal();
+      draftTheme = { ...draftTheme, background: 'custom', v: theme.v };
+      applyTheme(draftTheme);
+      renderLook();
       toast(t('theme_image_saved'));
     } catch (err) {
       toast(err.message, 'error');
@@ -468,17 +589,42 @@
     try {
       const { theme } = await api(`/api/devices/${state.filter}/background`, { method: 'DELETE' });
       savedTheme = theme;
-      draftTheme = { ...theme };
-      applyTheme(theme);
-      renderThemeModal();
+      draftTheme = { ...draftTheme, background: theme.background, v: 0 };
+      applyTheme(draftTheme);
+      renderLook();
       toast(t('theme_image_removed'));
     } catch (err) {
       toast(err.message, 'error');
     }
   }
 
-  function cancelDeviceTheme() {
-    closeModal($('theme-modal'));
+  function boardById(id) {
+    return BOARDS.find((b) => b.id === id) || BOARDS[0];
+  }
+
+  function boardImg(id, cls) {
+    return h('img', { class: cls || '', src: `/boards/${boardById(id).id}.webp`, alt: '', draggable: 'false' });
+  }
+
+  // The device's own header: its board photo, name and state
+  function renderHero() {
+    const el = $('device-hero');
+    if (!el) return;
+    const device = state.focusPage && state.filter ? state.devices.get(state.filter) : null;
+    document.body.classList.toggle('has-hero', Boolean(device) && document.body.dataset.hero !== 'off');
+    if (!device) { el.replaceChildren(); el.hidden = true; return; }
+    el.hidden = false;
+    const board = boardById(device.board);
+    const status = deviceStatus(device);
+    el.replaceChildren(
+      h('div', { class: 'hero-text' },
+        h('span', { class: 'hero-kicker', text: board.name }),
+        h('h1', { class: 'hero-name', text: device.name }),
+        h('span', { class: 'hero-state' },
+          h('span', { class: `status-dot ${status === 'live' ? 'online pulse' : status === 'quiet' ? 'online' : ''}`, 'aria-hidden': 'true' }),
+          h('span', { text: statusLine(device, status) }))),
+      h('div', { class: 'hero-board', 'aria-hidden': 'true' }, boardImg(device.board)),
+    );
   }
 
   // ---------- Widgets ----------
@@ -794,6 +940,8 @@
         'data-type': widget.type,
         'data-fit': cfg.fit || 'cover',
         'data-bare': cfg.bare ? '1' : '0',
+        'data-notitle': cfg.noTitle ? '1' : '0',
+        'data-noicon': cfg.noIcon ? '1' : '0',
         'data-w': String(g.w),
         style: `--x:${g.x};--y:${g.y};--w:${g.w};--h:${g.h};${cfg.accent ? `--tile-accent:${cfg.accent};` : ''}`,
       },
@@ -1629,6 +1777,7 @@
     renderSidebar();
     renderStats();
     renderFilters();
+    renderHero();
     renderGrid();
     updateTimestamps();
   }
@@ -1688,6 +1837,8 @@
     $('widget-loop').checked = cfg.loop !== false;
     $('widget-volume').value = String(typeof cfg.volume === 'number' ? cfg.volume : 0.7);
     $('widget-bare').checked = cfg.bare === true;
+    $('widget-showtitle').checked = cfg.noTitle !== true;
+    $('widget-showicon').checked = cfg.noIcon !== true;
     syncWidgetFormType();
     renderImagePreviews(widget);
     renderAudioState(widget);
@@ -1716,6 +1867,8 @@
     $('widget-loop').checked = true;
     $('widget-volume').value = '0.7';
     $('widget-bare').checked = false;
+    $('widget-showtitle').checked = true;
+    $('widget-showicon').checked = true;
     $('recv-field').hidden = true;
     setEditMode(false);
     const select = $('widget-device');
@@ -2035,6 +2188,8 @@
       loop: $('widget-loop').checked,
       volume: Number($('widget-volume').value),
       bare: $('widget-bare').checked,
+      noTitle: !$('widget-showtitle').checked,
+      noIcon: !$('widget-showicon').checked,
     };
     if (!decor && !/^[a-zA-Z0-9_]{1,32}$/.test(field)) {
       errorEl.textContent = t('field_invalid');
@@ -2167,8 +2322,8 @@
       return;
     }
     try {
-      const { device, key } = await api('/api/devices', { method: 'POST', body: JSON.stringify({ name }) });
-      state.devices.set(device.id, { id: device.id, name: device.name, latest: null, lastSeen: null, online: false });
+      const { device, key } = await api('/api/devices', { method: 'POST', body: JSON.stringify({ name, board }) });
+      state.devices.set(device.id, { id: device.id, name: device.name, board: device.board, latest: null, lastSeen: null, online: false });
       $('device-step-1').classList.add('hidden');
       $('device-step-2').classList.remove('hidden');
       $('device-key').textContent = key;
@@ -2534,8 +2689,9 @@
 
     $('theme-save').addEventListener('click', saveDeviceTheme);
     $('theme-image').addEventListener('change', uploadDeviceBackground);
-    $('theme-image-remove').addEventListener('click', removeDeviceBackground);
-    $('theme-cancel').addEventListener('click', cancelDeviceTheme);
+    $('theme-cancel').addEventListener('click', () => closeLook(false));
+    $('look-x').addEventListener('click', () => closeLook(false));
+    $('theme-reset').addEventListener('click', () => { draftTheme = { ...THEME_DEFAULT, v: draftTheme.v, background: draftTheme.background === 'custom' ? 'custom' : 'night' }; applyTheme(draftTheme); renderLook(); });
 
     // A device page is the dashboard opened with ?device=<id>
     const focus = new URLSearchParams(location.search).get('device');
@@ -2581,7 +2737,6 @@
     setInterval(() => { renderSidebar(); renderStats(); updateTimestamps(); }, 30000);
     setInterval(updateTimestamps, 1000);
     setInterval(tickClocks, 1000);
-    $('theme-dim').addEventListener('input', () => { draftTheme.dim = Number($('theme-dim').value); applyTheme(draftTheme); });
     $('audio-file').addEventListener('change', (e) => { const f = e.target.files[0]; e.target.value = ''; uploadTileAudio(f); });
     $('audio-rm').addEventListener('click', removeTileAudio);
   }

@@ -73,6 +73,7 @@
 
       <div class="notice hidden v-dash" id="unknown-notice" role="status"></div>
 
+      <section class="hero" id="device-hero" hidden></section>
       <div class="actions v-dash" id="filter-row" style="margin-bottom:16px;"></div>
 
       <div class="studio-bar v-dash hidden" id="studio-bar" role="status">
@@ -246,6 +247,10 @@
           <label class="check"><input type="checkbox" id="widget-loop" checked> <span data-i18n="music_loop">تكرار</span></label>
           <label class="mini"><span data-i18n="music_volume">مستوى الصوت</span><input type="range" id="widget-volume" min="0" max="1" step="0.05" value="0.7"></label>
         </div>
+        <div class="field" id="show-field">
+          <label class="check"><input type="checkbox" id="widget-showtitle" checked> <span data-i18n="show_title">إظهار العنوان</span></label>
+          <label class="check"><input type="checkbox" id="widget-showicon" checked> <span data-i18n="show_icon">إظهار الأيقونة</span></label>
+        </div>
         <div class="field" id="bare-field" hidden>
           <label class="check"><input type="checkbox" id="widget-bare"> <span data-i18n="bare_tile">بدون إطار (يظهر فوق الخلفية مباشرة)</span></label>
         </div>
@@ -300,46 +305,22 @@
     </div>
   </div>
 
-  <!-- Device look modal -->
-  <div class="modal-backdrop" id="theme-modal" role="dialog" aria-modal="true" aria-labelledby="theme-title">
-    <div class="card modal">
-      <h2 id="theme-title" data-i18n="theme_title">تخصيص الجهاز</h2>
-      <p class="lead" data-i18n="theme_lead">غيّر اللون والخلفية لهذه اللوحة. تظهر التغييرات فورًا.</p>
-      <div class="field">
-        <span class="field-label" data-i18n="theme_accent">اللون الأساسي</span>
-        <div class="swatches" id="theme-accents" role="radiogroup"></div>
-      </div>
-      <div class="field">
-        <span class="field-label" data-i18n="theme_tiles">شكل العناصر</span>
-        <div class="seg" id="theme-tiles" role="radiogroup"></div>
-      </div>
-      <div class="field">
-        <span class="field-label" data-i18n="theme_corners">الزوايا</span>
-        <div class="seg" id="theme-corners" role="radiogroup"></div>
-      </div>
-      <div class="field">
-        <span class="field-label" data-i18n="theme_bg">الخلفية</span>
-        <div class="gadget-grid" id="theme-bgs" role="radiogroup"></div>
-      </div>
-      <div class="field" id="theme-dim-field" hidden>
-        <label for="theme-dim" data-i18n="theme_dim">تعتيم الصورة</label>
-        <input type="range" id="theme-dim" min="0.2" max="0.9" step="0.05" value="0.6">
-      </div>
-      <div class="field">
-        <span class="field-label" data-i18n="theme_image">صورة الخلفية</span>
-        <p class="lead" data-i18n="theme_image_hint">JPG أو PNG أو WebP، بحد أقصى 2 MB. تُحفظ الصورة فورًا.</p>
-        <div class="actions">
-          <label class="btn" for="theme-image" data-i18n="theme_image_pick">اختيار صورة</label>
-          <input type="file" id="theme-image" accept="image/jpeg,image/png,image/webp" hidden>
-          <button type="button" class="btn btn-ghost" id="theme-image-remove" data-i18n="theme_image_remove">إزالة الصورة</button>
-        </div>
-      </div>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-ghost" id="theme-cancel" data-i18n="cancel">إلغاء</button>
-        <button type="button" class="btn btn-primary" id="theme-save" data-i18n="theme_save">حفظ</button>
-      </div>
+  <!-- Device look: a side panel, the page behind it shows every change live -->
+  <aside class="look" id="look" hidden aria-labelledby="look-title">
+    <div class="look-head">
+      <h2 id="look-title" data-i18n="customize">تخصيص</h2>
+      <button type="button" class="look-x" id="look-x" aria-label="إغلاق"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
-  </div>
+    <div class="look-tabs" id="look-tabs" role="tablist"></div>
+    <div class="look-body" id="look-body"></div>
+    <input type="file" id="theme-image" accept="image/jpeg,image/png,image/webp" hidden>
+    <div class="look-foot">
+      <button type="button" class="btn btn-ghost" id="theme-reset" data-i18n="look_reset">إعادة ضبط</button>
+      <span class="grow"></span>
+      <button type="button" class="btn btn-ghost" id="theme-cancel" data-i18n="cancel">إلغاء</button>
+      <button type="button" class="btn btn-primary" id="theme-save" data-i18n="theme_save">حفظ</button>
+    </div>
+  </aside>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
