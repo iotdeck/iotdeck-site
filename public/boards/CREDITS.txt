@@ -1,0 +1,8 @@
+Board images (backgrounds removed):
+- ESP32 DevKitM-1, ESP32-S3-DevKitC-1: Espressif Systems (esp-dev-kits docs), CC BY-SA 4.0
+- Arduino UNO Q, UNO R4 WiFi, Nano ESP32, GIGA R1 WiFi: Arduino (docs-content), CC BY-SA 4.0
+- Raspberry Pi 5: SimonWaldherr, Wikimedia Commons, CC BY 4.0
+- Raspberry Pi Zero 2 W: Anil Oztas, Wikimedia Commons, CC BY 4.0
+- Raspberry Pi Pico: Ciggsaftrcryi, Wikimedia Commons, CC0
+- NVIDIA Jetson Nano: Thomas Amberg, Wikimedia Commons, CC BY-SA 2.0
+- NodeMCU DevKit 1.0: Vowstar, Wikimedia Commons, CC BY-SA 4.0

@@ -2122,6 +2122,41 @@
     }
   }
 
+  const BOARDS = [
+    { id: 'esp32', name: 'ESP32', ok: true },
+    { id: 'esp32s3', name: 'ESP32-S3' },
+    { id: 'unoq', name: 'Arduino UNO Q' },
+    { id: 'unor4', name: 'Arduino UNO R4 WiFi' },
+    { id: 'nanoesp32', name: 'Arduino Nano ESP32' },
+    { id: 'giga', name: 'Arduino GIGA R1 WiFi' },
+    { id: 'pi5', name: 'Raspberry Pi 5' },
+    { id: 'zero2w', name: 'Raspberry Pi Zero 2 W' },
+    { id: 'pico', name: 'Raspberry Pi Pico' },
+    { id: 'jetson', name: 'NVIDIA Jetson Nano' },
+    { id: 'nodemcu', name: 'NodeMCU' },
+  ];
+  let board = 'esp32';
+
+  function renderBoards() {
+    const grid = $('board-grid');
+    if (!grid) return;
+    grid.replaceChildren(...BOARDS.map((b) => h(
+      'button',
+      {
+        class: 'board' + (b.ok ? '' : ' soon') + (b.id === board ? ' on' : ''),
+        type: 'button',
+        role: 'radio',
+        'aria-checked': b.id === board ? 'true' : 'false',
+        'aria-disabled': b.ok ? null : 'true',
+        disabled: b.ok ? null : true,
+        onclick: () => { board = b.id; renderBoards(); },
+      },
+      h('span', { class: 'board-img' }, h('img', { src: '/boards/' + b.id + '.webp', alt: '', loading: 'lazy', draggable: 'false' })),
+      h('span', { class: 'board-name' }, b.name),
+      b.ok ? null : h('span', { class: 'board-soon' }, t('board_soon')),
+    )));
+  }
+
   async function submitDevice(event) {
     event.preventDefault();
     const name = $('device-name').value.trim();
@@ -2418,6 +2453,8 @@
     $('device-form').reset();
     $('device-error').textContent = '';
     $('device-key').textContent = '';
+    board = 'esp32';
+    renderBoards();
   }
 
   // ---------- Boot ----------

@@ -120,9 +120,14 @@
         <p class="lead" data-i18n="add_device_lead">أعطِ الجهاز اسمًا. ستحصل على مفتاح يُستخدم مرة واحدة لإدخاله في الجهاز.</p>
         <form id="device-form" class="form" novalidate>
           <div class="field">
+            <label data-i18n="board_pick">اختر اللوحة</label>
+            <div class="board-grid" id="board-grid" role="radiogroup"></div>
+          </div>
+          <div class="field">
             <label for="device-name" data-i18n="device_name">اسم الجهاز</label>
             <input class="input" id="device-name" maxlength="60" data-i18n-placeholder="device_name_ph" placeholder="حساس الدفيئة" required>
           </div>
+          <p class="board-credits" data-i18n="board_credits"></p>
           <p class="error" id="device-error" role="alert"></p>
           <div class="modal-actions" style="margin-top:4px;">
             <button type="button" class="btn btn-ghost" data-close data-i18n="cancel">إلغاء</button>
