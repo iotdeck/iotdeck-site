@@ -316,7 +316,7 @@
   // ---------- Device pages and look ----------
 
   const THEME_COLORS = ['#7c8cff', '#3ee3b5', '#ffb86b', '#ff6b8a', '#5ec8ff', '#c792ea'];
-  const THEME_BACKGROUNDS = ['night', 'aurora', 'ocean', 'ember'];
+  const THEME_BACKGROUNDS = ['night', 'aurora', 'ocean', 'ember', 'forest'];
   let savedTheme = null;
   let draftTheme = null;
 
@@ -358,6 +358,9 @@
       '--custom-bg',
       theme.background === 'custom' ? `url("/api/devices/${state.filter}/background?v=${theme.v || 0}")` : 'none',
     );
+    document.body.dataset.tiles = theme.tiles || 'glass';
+    document.body.dataset.corners = theme.corners || 'round';
+    document.body.style.setProperty('--dim', String(typeof theme.dim === 'number' ? theme.dim : 0.6));
     document.documentElement.style.setProperty('--accent', theme.accent);
     document.documentElement.style.setProperty('--accent-glow', `${theme.accent}59`);
   }
@@ -392,6 +395,16 @@
         renderThemeModal();
       },
     })));
+    const seg = (key, values) => values.map((value) => h('button', {
+      class: 'seg-btn', type: 'button', role: 'radio',
+      'aria-checked': String((draftTheme[key] || values[0]) === value),
+      text: t(`${key}_${value}`),
+      onclick: () => { draftTheme[key] = value; applyTheme(draftTheme); renderThemeModal(); },
+    }));
+    $('theme-tiles').replaceChildren(...seg('tiles', ['glass', 'solid', 'outline']));
+    $('theme-corners').replaceChildren(...seg('corners', ['round', 'soft', 'sharp']));
+    $('theme-dim-field').hidden = draftTheme.background !== 'custom';
+    $('theme-dim').value = String(typeof draftTheme.dim === 'number' ? draftTheme.dim : 0.6);
     $('theme-bgs').replaceChildren(...THEME_BACKGROUNDS.map((bg) => h(
       'button',
       {
@@ -496,16 +509,22 @@
     flag: 'M5 21V4M5 4h11l-2 4 2 4H5',
     home: 'M4 11.500 12 5l8 6.500V19a1 1 0 0 1-1 1h-4v-5H9v5H5a1 1 0 0 1-1-1z',
     dot: 'M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0',
+    music: 'M9 18V5l11-2v13M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3zM20 16a3 3 0 1 1-3-3 3 3 0 0 1 3 3z',
+    link: 'M10 14a4 4 0 0 0 5.700 0l3-3a4 4 0 0 0-5.700-5.700l-1 1M14 10a4 4 0 0 0-5.700 0l-3 3a4 4 0 0 0 5.700 5.700l1-1',
+    clock: 'M12 7v5l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z',
+    play: 'M8 5v14l11-7z',
+    pause: 'M8 5v14M16 5v14',
+    arrow: 'M7 17 17 7M9 7h8v8',
   };
-  const PICKABLE_ICONS = ['bulb', 'power', 'fan', 'thermo', 'drop', 'bolt', 'door', 'lock', 'plant', 'wifi', 'sun', 'moon', 'bell', 'gauge', 'chart', 'hand', 'home', 'flag'];
+  const PICKABLE_ICONS = ['bulb', 'power', 'fan', 'thermo', 'drop', 'bolt', 'door', 'lock', 'plant', 'wifi', 'sun', 'moon', 'bell', 'gauge', 'chart', 'hand', 'home', 'flag', 'music', 'link', 'clock'];
   const DEFAULT_ICON = {
     toggle: 'bulb', button: 'hand', slider: 'slider', value: 'thermo', text: 'text', gauge: 'gauge',
-    bar: 'chart', line: 'chart', indicator: 'dot', image: 'photo', label: 'flag',
+    bar: 'chart', line: 'chart', indicator: 'dot', image: 'photo', label: 'flag', note: 'text', clock: 'clock', link: 'link', music: 'music',
   };
   // Starting size on the canvas: [columns, rows]. A phone shows 4 columns.
   const DEFAULT_SIZE = {
     toggle: [2, 1], button: [2, 1], slider: [4, 1], value: [2, 1], text: [2, 1], gauge: [2, 2],
-    bar: [2, 1], line: [4, 2], indicator: [2, 1], image: [2, 2], label: [4, 1],
+    bar: [2, 1], line: [4, 2], indicator: [2, 1], image: [2, 2], label: [4, 1], note: [2, 1], clock: [2, 1], link: [2, 1], music: [4, 1],
   };
   const TILE_COLORS = ['#7c8cff', '#3ee3b5', '#ffb86b', '#ff6b8a', '#5ec8ff', '#c792ea'];
 
@@ -613,7 +632,7 @@
     const [w, hgt] = tileSize(widget);
     const cfg = widget.config || {};
     const icon = cfg.icon && ICON_PATHS[cfg.icon] ? cfg.icon : DEFAULT_ICON[widget.type] || 'dot';
-    const decor = widget.type === 'image' || widget.type === 'label';
+    const decor = DECOR_GADGETS.includes(widget.type);
 
     const edit = h(
       'div',
@@ -624,7 +643,7 @@
         s('svg', { viewBox: '0 0 24 24' }, s('path', { d: 'M20 14v6h-6M10 20 20 10' }))),
     );
     const titled = Boolean((widget.title || '').trim());
-    const top = widget.type === 'label'
+    const top = ['label', 'note', 'clock', 'link', 'music'].includes(widget.type)
       ? null
       : h(
         'div',
@@ -642,6 +661,7 @@
         'data-id': widget.id,
         'data-type': widget.type,
         'data-fit': cfg.fit || 'cover',
+        'data-bare': cfg.bare ? '1' : '0',
         'data-w': String(w),
         style: `--w:${w};--h:${hgt};${cfg.accent ? `--tile-accent:${cfg.accent};` : ''}`,
       },
@@ -663,6 +683,46 @@
         { class: 'label-block' },
         h('div', { class: 'label-title' }, h('span', { class: 'tile-ico' }, iconSvg(icon)), h('span', { text: widget.title || '' })),
         cfg.sub ? h('div', { class: 'label-sub', text: cfg.sub }) : null,
+      );
+    }
+
+    if (type === 'note') {
+      const cfg = widget.config || {};
+      return h(
+        'div',
+        { class: 'note-block', 'data-size': cfg.size || 'm', 'data-align': cfg.align || 'start' },
+        h('div', { class: 'note-text', text: cfg.text || (state.studio ? t('note_placeholder') : '') }),
+      );
+    }
+
+    if (type === 'clock') {
+      return h('div', { class: 'clock-block' }, h('div', { class: 'clock-time', 'data-role': 'ctime' }), h('div', { class: 'clock-date', 'data-role': 'cdate' }));
+    }
+
+    if (type === 'link') {
+      const cfg = widget.config || {};
+      return h(
+        'button',
+        {
+          class: 'link-block tile-act', type: 'button', disabled: cfg.url ? null : 'true',
+          onclick: () => { if (cfg.url && !state.studio) window.open(cfg.url, '_blank', 'noopener,noreferrer'); },
+        },
+        h('span', { class: 'tile-ico' }, iconSvg(icon)),
+        h('span', { class: 'link-text' }, h('b', { text: widget.title || t('type_link') }), cfg.sub ? h('i', { text: cfg.sub }) : null),
+        h('span', { class: 'link-go' }, iconSvg('arrow')),
+      );
+    }
+
+    if (type === 'music') {
+      const cfg = widget.config || {};
+      return h(
+        'div',
+        { class: 'music-block' },
+        h('button', { class: 'music-btn tile-act', type: 'button', 'data-role': 'mplay', 'aria-label': t('music_play'), onclick: () => toggleMusic(widget) }, iconSvg('play')),
+        h('span', { class: 'music-text' },
+          h('b', { text: widget.title || cfg.audName || t('type_music') }),
+          h('i', { 'data-role': 'mname', text: cfg.aud ? (cfg.audName || '') : t('music_none') }),
+          h('span', { class: 'music-bar' }, h('span', { 'data-role': 'mfill' }))),
       );
     }
 
@@ -772,6 +832,74 @@
     );
   }
 
+  // ---------- Clock and music tiles ----------
+
+  function tickClocks() {
+    const now = new Date();
+    const locale = document.documentElement.lang === 'ar' ? 'ar-SA-u-nu-latn' : 'en-GB';
+    for (const widget of state.widgets) {
+      if (widget.type !== 'clock') continue;
+      const card = state.cards.get(widget.id);
+      if (!card) continue;
+      const cfg = widget.config || {};
+      card.querySelector('[data-role="ctime"]').textContent = now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: Boolean(cfg.hour12) });
+      const dateEl = card.querySelector('[data-role="cdate"]');
+      dateEl.hidden = cfg.showDate === false;
+      if (!dateEl.hidden) dateEl.textContent = now.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' });
+    }
+  }
+
+  // One song plays at a time. The browser only allows sound after a tap, so music starts on the play button.
+  const music = { id: null, el: null };
+
+  function paintMusic(card, widget) {
+    const cfg = widget.config || {};
+    const playing = music.id === widget.id && music.el && !music.el.paused;
+    card.classList.toggle('on', Boolean(playing));
+    const btn = card.querySelector('[data-role="mplay"]');
+    btn.replaceChildren(iconSvg(playing ? 'pause' : 'play'));
+    btn.setAttribute('aria-label', playing ? t('music_pause') : t('music_play'));
+    btn.disabled = !cfg.aud;
+    if (music.id !== widget.id) card.querySelector('[data-role="mfill"]').style.width = '0%';
+  }
+
+  function repaintMusic() {
+    for (const widget of state.widgets) {
+      if (widget.type !== 'music') continue;
+      const card = state.cards.get(widget.id);
+      if (card) paintMusic(card, widget);
+    }
+  }
+
+  function toggleMusic(widget) {
+    if (state.studio) return;
+    const cfg = widget.config || {};
+    if (!cfg.aud) return;
+    if (music.id === widget.id && music.el) {
+      if (music.el.paused) music.el.play().catch(() => {});
+      else music.el.pause();
+      buzz(8);
+      return;
+    }
+    if (music.el) music.el.pause();
+    const el = new Audio(`/api/widgets/${widget.id}/audio?v=${cfg.aud}`);
+    el.loop = cfg.loop !== false;
+    el.volume = typeof cfg.volume === 'number' ? cfg.volume : 0.7;
+    el.addEventListener('play', repaintMusic);
+    el.addEventListener('pause', repaintMusic);
+    el.addEventListener('ended', repaintMusic);
+    el.addEventListener('timeupdate', () => {
+      const card = state.cards.get(widget.id);
+      const fill = card && card.querySelector('[data-role="mfill"]');
+      if (fill && el.duration) fill.style.width = `${((el.currentTime / el.duration) * 100).toFixed(1)}%`;
+    });
+    el.addEventListener('error', () => { toast(t('music_error'), 'error'); repaintMusic(); });
+    music.id = widget.id;
+    music.el = el;
+    el.play().catch(() => toast(t('music_error'), 'error'));
+    buzz(8);
+  }
+
   function updateWidgetCard(card, widget) {
     const device = state.devices.get(widget.deviceId);
     // This tile's own value and time. Other tiles do not change it.
@@ -785,7 +913,9 @@
     const deviceEl = q('device');
     if (deviceEl) deviceEl.textContent = !state.filter && device ? device.name : '';
 
-    if (widget.type === 'label') return;
+    if (['label', 'note', 'link'].includes(widget.type)) return;
+    if (widget.type === 'clock') { tickClocks(); return; }
+    if (widget.type === 'music') { paintMusic(card, widget); return; }
 
     if (widget.type === 'image') {
       const cfg = widget.config || {};
@@ -1363,8 +1493,18 @@
     $('widget-sub').value = cfg.sub || '';
     $('widget-fit').value = cfg.fit || 'cover';
     $('widget-statefield').value = cfg.stateField || '';
+    $('widget-text').value = cfg.text || '';
+    $('widget-size').value = cfg.size || 'm';
+    $('widget-align').value = cfg.align || 'start';
+    $('widget-hour12').checked = cfg.hour12 === true;
+    $('widget-showdate').checked = cfg.showDate !== false;
+    $('widget-url').value = cfg.url || '';
+    $('widget-loop').checked = cfg.loop !== false;
+    $('widget-volume').value = String(typeof cfg.volume === 'number' ? cfg.volume : 0.7);
+    $('widget-bare').checked = cfg.bare === true;
     syncWidgetFormType();
     renderImagePreviews(widget);
+    renderAudioState(widget);
     $('widget-error').textContent = '';
     openModal('widget-modal');
   }
@@ -1381,6 +1521,15 @@
     $('widget-sub').value = '';
     $('widget-fit').value = 'cover';
     $('widget-statefield').value = '';
+    $('widget-text').value = '';
+    $('widget-size').value = 'm';
+    $('widget-align').value = 'start';
+    $('widget-hour12').checked = false;
+    $('widget-showdate').checked = true;
+    $('widget-url').value = '';
+    $('widget-loop').checked = true;
+    $('widget-volume').value = '0.7';
+    $('widget-bare').checked = false;
     $('recv-field').hidden = true;
     setEditMode(false);
     const select = $('widget-device');
@@ -1404,7 +1553,7 @@
   // Input gadgets send commands to the board. Output gadgets only show readings.
   const INPUT_GADGETS = ['toggle', 'button', 'slider'];
   const OUTPUT_GADGETS = ['value', 'text', 'gauge', 'bar', 'line', 'indicator'];
-  const DECOR_GADGETS = ['image', 'label'];
+  const DECOR_GADGETS = ['image', 'label', 'note', 'clock', 'link', 'music'];
 
   // Small drawings of each gadget. They move a little so the choice is easy to see.
   function gadgetArt(type) {
@@ -1473,12 +1622,30 @@
     return svg(s('rect', { class: 'art-btn', x: 28, y: 20, width: 64, height: 30, rx: 15 }));
   }
 
+  function decorArt(type) {
+    const svg = (...children) => s('svg', { class: 'gadget-art', viewBox: '0 0 120 64', 'aria-hidden': 'true' }, ...children);
+    if (type === 'note') {
+      return svg(
+        s('text', { class: 'art-num', x: 60, y: 30, 'text-anchor': 'middle' }, 'Aa'),
+        s('rect', { class: 'art-bar-track', x: 28, y: 42, width: 64, height: 3, rx: 1.5 }),
+        s('rect', { class: 'art-bar-track', x: 40, y: 50, width: 40, height: 3, rx: 1.5 }),
+      );
+    }
+    if (type === 'clock') return svg(s('text', { class: 'art-num', x: 60, y: 40, 'text-anchor': 'middle' }, '09:41'));
+    if (type === 'link') return svg(s('path', { class: 'art-line', d: 'M40 40 L78 22 M62 22 H78 V38', fill: 'none' }));
+    return svg(
+      s('circle', { class: 'art-btn', cx: 42, cy: 32, r: 15 }),
+      s('path', { class: 'art-line', d: 'M38 25 L50 32 L38 39 Z', fill: 'none' }),
+      s('rect', { class: 'art-bar-track', x: 64, y: 30, width: 38, height: 3, rx: 1.5 }),
+    );
+  }
+
   function renderGadgetGrid() {
     const current = $('widget-type').value;
     const card = (type) => h(
       'button',
       { class: 'gadget-card', type: 'button', role: 'radio', 'aria-checked': String(type === current), 'data-type': type, onclick: () => selectGadget(type) },
-      gadgetArt(type),
+      ['note', 'clock', 'link', 'music'].includes(type) ? decorArt(type) : gadgetArt(type),
       h('span', { class: 'gadget-name', text: t(`type_${type}`) }),
     );
     $('gadget-grid').replaceChildren(
@@ -1531,9 +1698,17 @@
     // Pictures and headings are not tied to a value from the board
     $('widget-field').closest('.field').hidden = decor;
     $('image-section').hidden = type !== 'image' || !editingWidget;
-    $('label-section').hidden = type !== 'label';
-    $('widget-sub').closest('.field').hidden = type !== 'label';
-    $('look-section').hidden = type === 'image';
+    $('label-section').hidden = !['label', 'link'].includes(type);
+    $('widget-sub').closest('.field').hidden = !['label', 'link'].includes(type);
+    $('note-section').hidden = type !== 'note';
+    $('clock-section').hidden = type !== 'clock';
+    $('link-section').hidden = type !== 'link';
+    $('music-section').hidden = type !== 'music';
+    $('bare-field').hidden = !decor || type === 'music';
+    $('audio-actions').hidden = !editingWidget;
+    if (type === 'music' && !editingWidget) $('audio-name').textContent = t('music_after_add');
+    $('look-section').hidden = type === 'image' || type === 'note' || type === 'clock';
+    $('widget-title-input').closest('.field').hidden = type === 'note' || type === 'clock';
     renderLookPickers();
   }
 
@@ -1601,6 +1776,50 @@
     }
   }
 
+  function renderAudioState(widget) {
+    const cfg = (widget && widget.config) || {};
+    $('audio-actions').hidden = false;
+    $('audio-name').textContent = cfg.aud ? cfg.audName || t('music_loaded') : t('music_none');
+    $('audio-rm').hidden = !cfg.aud;
+  }
+
+  async function uploadTileAudio(file) {
+    if (!editingWidget || !file) return;
+    const guess = { mp3: 'audio/mpeg', m4a: 'audio/mp4', ogg: 'audio/ogg', wav: 'audio/wav', aac: 'audio/aac', webm: 'audio/webm' };
+    const type = file.type || guess[(file.name.split('.').pop() || '').toLowerCase()] || '';
+    if (file.size > 8 * 1024 * 1024) { $('widget-error').textContent = t('music_too_big'); return; }
+    try {
+      $('audio-name').textContent = t('please_wait');
+      const res = await fetch(`/api/widgets/${editingWidget.id}/audio`, {
+        method: 'PUT', credentials: 'same-origin', headers: { 'content-type': type, 'x-file-name': encodeURIComponent(file.name) }, body: file,
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || t('request_failed'));
+      editingWidget.config = { ...(editingWidget.config || {}), ...body.config };
+      if (music.id === editingWidget.id && music.el) { music.el.pause(); music.id = null; music.el = null; }
+      renderAudioState(editingWidget);
+      renderAll();
+    } catch (err) {
+      renderAudioState(editingWidget);
+      $('widget-error').textContent = err.message;
+    }
+  }
+
+  async function removeTileAudio() {
+    if (!editingWidget) return;
+    try {
+      const body = await api(`/api/widgets/${editingWidget.id}/audio`, { method: 'DELETE' });
+      editingWidget.config = { ...(editingWidget.config || {}), ...body.config };
+      delete editingWidget.config.aud;
+      delete editingWidget.config.audName;
+      if (music.id === editingWidget.id && music.el) { music.el.pause(); music.id = null; music.el = null; }
+      renderAudioState(editingWidget);
+      renderAll();
+    } catch (err) {
+      $('widget-error').textContent = err.message;
+    }
+  }
+
   async function submitWidget(event) {
     event.preventDefault();
     const errorEl = $('widget-error');
@@ -1621,6 +1840,15 @@
       sub: $('widget-sub').value.trim(),
       fit: $('widget-fit').value,
       stateField: $('widget-statefield').value.trim(),
+      text: $('widget-text').value,
+      size: $('widget-size').value,
+      align: $('widget-align').value,
+      hour12: $('widget-hour12').checked,
+      showDate: $('widget-showdate').checked,
+      url: $('widget-url').value.trim(),
+      loop: $('widget-loop').checked,
+      volume: Number($('widget-volume').value),
+      bare: $('widget-bare').checked,
     };
     if (!decor && !/^[a-zA-Z0-9_]{1,32}$/.test(field)) {
       errorEl.textContent = t('field_invalid');
@@ -1657,7 +1885,7 @@
       renderAll();
       toast(t('widget_added'));
       // A picture tile starts empty: open it so the photo can be chosen right away
-      if (widget.type === 'image') setTimeout(() => openEditWidget(widget), 250);
+      if (widget.type === 'image' || widget.type === 'music') setTimeout(() => openEditWidget(widget), 250);
     } catch (err) {
       errorEl.textContent = err.message;
     }
@@ -2123,6 +2351,10 @@
     }, 60000);
     setInterval(() => { renderSidebar(); renderStats(); updateTimestamps(); }, 30000);
     setInterval(updateTimestamps, 1000);
+    setInterval(tickClocks, 1000);
+    $('theme-dim').addEventListener('input', () => { draftTheme.dim = Number($('theme-dim').value); applyTheme(draftTheme); });
+    $('audio-file').addEventListener('change', (e) => { const f = e.target.files[0]; e.target.value = ''; uploadTileAudio(f); });
+    $('audio-rm').addEventListener('click', removeTileAudio);
   }
 
   boot();

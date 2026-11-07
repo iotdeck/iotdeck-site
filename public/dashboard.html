@@ -203,6 +203,42 @@
             </div>
           </div>
         </div>
+        <div class="field" id="note-section" hidden>
+          <label for="widget-text" data-i18n="note_text">النص</label>
+          <textarea class="input" id="widget-text" rows="4" maxlength="600"></textarea>
+          <div class="row2">
+            <label class="mini">
+              <span data-i18n="note_size">حجم الخط</span>
+              <select class="input" id="widget-size"><option value="s" data-i18n="size_s">صغير</option><option value="m" data-i18n="size_m">متوسط</option><option value="l" data-i18n="size_l">كبير</option><option value="xl" data-i18n="size_xl">ضخم</option></select>
+            </label>
+            <label class="mini">
+              <span data-i18n="note_align">المحاذاة</span>
+              <select class="input" id="widget-align"><option value="start" data-i18n="align_start">بداية</option><option value="center" data-i18n="align_center">وسط</option><option value="end" data-i18n="align_end">نهاية</option></select>
+            </label>
+          </div>
+        </div>
+        <div class="field" id="clock-section" hidden>
+          <label class="check"><input type="checkbox" id="widget-hour12"> <span data-i18n="clock_12h">نظام 12 ساعة</span></label>
+          <label class="check"><input type="checkbox" id="widget-showdate" checked> <span data-i18n="clock_date">إظهار التاريخ</span></label>
+        </div>
+        <div class="field" id="link-section" hidden>
+          <label for="widget-url" data-i18n="link_url">الرابط</label>
+          <input class="input" id="widget-url" type="url" maxlength="300" placeholder="https://" dir="ltr">
+        </div>
+        <div class="field" id="music-section" hidden>
+          <span class="field-label" data-i18n="music_file">ملف الصوت (MP3, M4A, OGG, WAV — حتى 8 MB)</span>
+          <p class="lead" id="audio-name"></p>
+          <div class="actions" id="audio-actions">
+            <label class="btn" for="audio-file" data-i18n="music_pick">اختيار ملف</label>
+            <input type="file" id="audio-file" accept="audio/*,.mp3,.m4a,.ogg,.wav,.aac" hidden>
+            <button type="button" class="btn btn-ghost" id="audio-rm" hidden data-i18n="music_remove">إزالة</button>
+          </div>
+          <label class="check"><input type="checkbox" id="widget-loop" checked> <span data-i18n="music_loop">تكرار</span></label>
+          <label class="mini"><span data-i18n="music_volume">مستوى الصوت</span><input type="range" id="widget-volume" min="0" max="1" step="0.05" value="0.7"></label>
+        </div>
+        <div class="field" id="bare-field" hidden>
+          <label class="check"><input type="checkbox" id="widget-bare"> <span data-i18n="bare_tile">بدون إطار (يظهر فوق الخلفية مباشرة)</span></label>
+        </div>
         <div class="field" id="label-section" hidden>
           <label for="widget-sub" data-i18n="label_sub">نص ثانوي (اختياري)</label>
           <input class="input" id="widget-sub" maxlength="80">
@@ -264,8 +300,20 @@
         <div class="swatches" id="theme-accents" role="radiogroup"></div>
       </div>
       <div class="field">
+        <span class="field-label" data-i18n="theme_tiles">شكل العناصر</span>
+        <div class="seg" id="theme-tiles" role="radiogroup"></div>
+      </div>
+      <div class="field">
+        <span class="field-label" data-i18n="theme_corners">الزوايا</span>
+        <div class="seg" id="theme-corners" role="radiogroup"></div>
+      </div>
+      <div class="field">
         <span class="field-label" data-i18n="theme_bg">الخلفية</span>
         <div class="gadget-grid" id="theme-bgs" role="radiogroup"></div>
+      </div>
+      <div class="field" id="theme-dim-field" hidden>
+        <label for="theme-dim" data-i18n="theme_dim">تعتيم الصورة</label>
+        <input type="range" id="theme-dim" min="0.2" max="0.9" step="0.05" value="0.6">
       </div>
       <div class="field">
         <span class="field-label" data-i18n="theme_image">صورة الخلفية</span>
