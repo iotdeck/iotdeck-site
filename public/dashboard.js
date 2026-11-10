@@ -2286,7 +2286,7 @@
     { id: 'giga', name: 'Arduino GIGA R1 WiFi' },
     { id: 'pi5', name: 'Raspberry Pi 5' },
     { id: 'zero2w', name: 'Raspberry Pi Zero 2 W' },
-    { id: 'pico', name: 'Raspberry Pi Pico' },
+    { id: 'pico', name: 'Raspberry Pi Pico W', ok: true },
     { id: 'jetson', name: 'NVIDIA Jetson Nano' },
     { id: 'nodemcu', name: 'NodeMCU' },
   ];
@@ -2327,10 +2327,11 @@
       $('device-step-1').classList.add('hidden');
       $('device-step-2').classList.remove('hidden');
       $('device-key').textContent = key;
-      newDevice = { id: device.id, key };
+      newDevice = { id: device.id, key, board: device.board };
       $('setup-name-row').hidden = true;
       $('copy-key').disabled = false;
-      $('device-snippet').textContent = buildSnippet(key, 'send');
+      $('device-snippet').textContent = buildSnippet(key, 'send', device.board);
+      renderBoardSetup(device.board);
       $('test-hint').textContent = t('test_send_hint');
       renderAll();
     } catch (err) {
@@ -2340,15 +2341,20 @@
 
   // Code stays in English so it can be copied as-is into the Arduino IDE.
   // Test send: the board sends a temperature. Test write: the dashboard's LED switch controls the board.
-  function buildSnippet(key, mode) {
+  // The Pico runs everything from IoTDeck.loop(), and reads its own chip temperature for a real value.
+  function buildSnippet(key, mode, boardId) {
+    const pico = boardId === 'pico';
     const common = [
       '/*',
-      '  IoTDeck: free dashboards for ESP32 projects.',
+      pico ? '  IoTDeck: free dashboards for Raspberry Pi Pico W projects.' : '  IoTDeck: free dashboards for ESP32 projects.',
       '',
       mode === 'send'
-        ? '  Test send: the board sends a temperature only when it moves by 0.5 °C, at most every 5 minutes.'
+        ? pico
+          ? '  Test send: the Pico sends its chip temperature only when it moves by 0.5 °C, at most every 5 minutes.'
+          : '  Test send: the board sends a temperature only when it moves by 0.5 °C, at most every 5 minutes.'
         : '  Test write: the dashboard\'s LED switch turns the board\'s built-in LED on or off.',
       '  Fill in the Wi-Fi name and password, then upload the sketch.',
+      ...(pico ? ['  Board: Tools > Board > Raspberry Pi Pico W (or Pico 2 W).'] : []),
       '*/',
       '',
       '#include <IoTDeck.h>                                 // The IoTDeck library',
@@ -2368,8 +2374,11 @@
         ...common,
         ...setup,
         'void loop() {',
-        '  // Simulated slow drift between 20.5 and 24.5 °C. Replace with your sensor reading.',
-        '  float temperature = 22.5 + 2.0 * sin(millis() / 300000.0);',
+        ...(pico ? ['  IoTDeck.loop();  // Keeps the connection alive. Call it often and avoid long delay() calls.', ''] : []),
+        pico
+          ? '  // The chip\'s own temperature sensor. Replace with your sensor reading.'
+          : '  // Simulated slow drift between 20.5 and 24.5 °C. Replace with your sensor reading.',
+        pico ? '  float temperature = analogReadTemp();' : '  float temperature = 22.5 + 2.0 * sin(millis() / 300000.0);',
         '',
         '  // Sends when the value has moved by at least 0.5 °C, at most every 300 seconds (5 minutes).',
         '  // Use IoTDeck.sendEvery("TEMPERATURE", temperature, 60) to send every 60 seconds whatever the value does.',
@@ -2386,9 +2395,24 @@
       '',
       ...setup,
       'void loop() {',
-      '  // Nothing to do here. The library works in the background.',
+      pico ? '  IoTDeck.loop();  // Keeps the connection alive. Call it often and avoid long delay() calls.' : '  // Nothing to do here. The library works in the background.',
       '}',
     ].join('\n');
+  }
+
+  // The steps to get this board ready in the Arduino IDE, above the code
+  function renderBoardSetup(boardId) {
+    const el = $('board-setup');
+    const board = boardById(boardId);
+    $('quick-start-title').textContent = t('quick_start_for', { board: board.name });
+    const steps = boardId === 'pico'
+      ? [
+        [t('pico_step1'), h('code', { text: 'https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json' })],
+        [t('pico_step2')],
+        [t('pico_step3')],
+      ]
+      : [[t('esp_step1')], [t('esp_step2')]];
+    el.replaceChildren(h('ol', { class: 'board-steps' }, ...steps.map((parts) => h('li', {}, ...parts))));
   }
 
   // The device just created, so the test buttons know which device to use
@@ -2397,7 +2421,7 @@
   // Creates the matching gadget on the new device, so the test works straight away
   async function chooseTest(mode) {
     if (!newDevice) return;
-    $('device-snippet').textContent = buildSnippet(newDevice.key || 'your-device-key', mode);
+    $('device-snippet').textContent = buildSnippet(newDevice.key || 'your-device-key', mode, newDevice.board);
     $('test-hint').textContent = t(mode === 'send' ? 'test_send_hint' : 'test_write_hint');
     const body = mode === 'send'
       ? { deviceId: newDevice.id, type: 'value', field: 'TEMPERATURE', title: 'Temperature', unit: '°C', min: 0, max: 100 }
@@ -2419,7 +2443,7 @@
   // The key itself is only shown once when the device is created, so it is not shown again here.
   function openSetup(deviceId) {
     const device = state.devices.get(deviceId);
-    newDevice = { id: deviceId, key: null };
+    newDevice = { id: deviceId, key: null, board: device ? device.board : 'esp32' };
     $('device-step-1').classList.add('hidden');
     $('device-step-2').classList.remove('hidden');
     $('setup-name-row').hidden = false;
@@ -2427,7 +2451,8 @@
     $('setup-id').textContent = deviceId;
     $('device-key').textContent = t('key_not_shown');
     $('copy-key').disabled = true;
-    $('device-snippet').textContent = buildSnippet('PASTE_YOUR_DEVICE_KEY', 'send');
+    $('device-snippet').textContent = buildSnippet('PASTE_YOUR_DEVICE_KEY', 'send', newDevice.board);
+    renderBoardSetup(newDevice.board);
     $('test-hint').textContent = t('setup_reopen_hint', { name: device ? device.name : '' });
     openModal('device-modal');
   }
@@ -2459,7 +2484,7 @@
       newDevice.key = key;
       $('copy-key').disabled = false;
       $('device-key').textContent = key;
-      $('device-snippet').textContent = buildSnippet(key, 'send');
+      $('device-snippet').textContent = buildSnippet(key, 'send', newDevice.board);
       toast(t('rotate_done'));
     } catch (err) {
       toast(err.message, 'error');

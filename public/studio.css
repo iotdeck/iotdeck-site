@@ -630,3 +630,5 @@ body[data-hero="off"] .hero { display: none; }
   body.look-open { padding-bottom: 58vh; }
 }
 body.has-hero #greeting, body.has-hero #subtitle { display: none; }
+.board-steps { margin: 0 0 14px; padding-inline-start: 20px; display: grid; gap: 6px; color: var(--text-dim); font-size: 13.5px; line-height: 1.55; }
+.board-steps code { display: block; margin-top: 2px; padding: 6px 8px; border-radius: 8px; background: rgba(255,255,255,.05); border: 1px solid var(--border); color: var(--text); font-size: 12px; direction: ltr; text-align: left; overflow-wrap: anywhere; user-select: all; }
